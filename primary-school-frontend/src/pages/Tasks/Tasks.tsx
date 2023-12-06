@@ -24,10 +24,10 @@ const Tasks = () => {
     const addTask = (newTask: ITask) => {
         setTasks([...tasks, newTask]);
     };
-
+    console.log(tasks)
     return (
         <Container>
-            <TaskForm addTask={addTask}/>
+            <TaskForm taskId={taskId} addTask={addTask}/>
             <TasksTable tasks={tasks}/>
         </Container>
     );
