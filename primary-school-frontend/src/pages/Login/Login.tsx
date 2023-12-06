@@ -22,7 +22,7 @@ const Login = () => {
         try {
             const response = await loginUser(data)
             Cookies.set('sessionToken', response.authentication.sessionToken, { expires: 7, secure: true, sameSite: 'Strict' });
-            nav(AppRoutes.MAIN)
+            nav(AppRoutes.INBOX)
         } catch (e) {
             enqueueSnackbar('Невірні дані !', {
                 variant: 'error',

@@ -8,7 +8,7 @@ interface TasksTableProps {
 
 export const TasksTable: React.FC<TasksTableProps> = ({ tasks }) => {
     return (
-        <Paper>
+        <Paper sx={{marginTop:6}}>
             <Table>
                 <TableHead>
                     <TableRow>

@@ -1,6 +1,11 @@
 import {
     DataGrid,
-    GridActionsCellItem, GridColDef, GridEventListener, GridRowEditStopReasons, GridRowId, GridRowModel,
+    GridActionsCellItem,
+    GridColDef,
+    GridEventListener,
+    GridRowEditStopReasons,
+    GridRowId,
+    GridRowModel,
     GridRowModes,
     GridRowModesModel,
     GridRowsProp,
@@ -11,14 +16,12 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Close';
-const roles = ['Market', 'Finance', 'Development'];
-
-import {
-    randomId,
-    randomArrayItem,
-} from '@mui/x-data-grid-generator';
+import {randomArrayItem, randomId,} from '@mui/x-data-grid-generator';
 import {Box, Button, Typography} from "@mui/material";
 import React from "react";
+import {EditSelectCell} from "../../components/EditSelectCell/EditSelectCell.tsx";
+
+const roles = ['Market', 'Finance', 'Development'];
 
 const randomRole = () => {
     return randomArrayItem(roles);
@@ -28,61 +31,62 @@ const initialRows: GridRowsProp = [
     {
         id: randomId(),
         name: "Ангеліна Антошевська",
-        absenteeism: 10,
+        absenteeism: "",
 
-        task1: "E",
-        task2: "A",
-        task3: "B",
-        task4: "C",
-        task5: "D",
+        task1: "",
+        task2: "",
+        task3: "",
+        task4: "",
+        task5: "",
     },
     {
         id: randomId(),
         name: "Роман Бартошик",
-        absenteeism: 3,
+        absenteeism:"",
 
-        task1: "A",
-        task2: "C",
-        task3: "D",
-        task4: "F",
-        task5: "B",
+        task1: "",
+        task2: "",
+        task3: "",
+        task4: "",
+        task5: "",
     },
     {
         id: randomId(),
         name: "Вікторія Білецька",
-        absenteeism: 2,
+        absenteeism: "",
 
-        task1: "A",
-        task2: "C",
-        task3: "D",
-        task4: "F",
-        task5: "B",
+        task1: "",
+        task2: "",
+        task3: "",
+        task4: "",
+        task5: "",
 
         role: randomRole(),
     },
     {
         id: randomId(),
         name: "Подолюх Роман",
-        absenteeism: 15,
+        absenteeism: "",
 
-        task1: "A",
-        task2: "C",
-        task3: "D",
-        task4: "F",
-        task5: "B",
+        task1: "",
+        task2: "",
+        task3: "",
+        task4: "",
+        task5: "",
     },
     {
         id: randomId(),
         name: "Ярема Андрій",
-        absenteeism: 3,
+        absenteeism:"" ,
 
-        task1: "A",
-        task2: "C",
-        task3: "D",
-        task4: "F",
-        task5: "B",
+        task1: "",
+        task2: "",
+        task3: "",
+        task4: "",
+        task5: "",
     },
 ];
+
 interface EditToolbarProps {
     setRows: (newRows: (oldRows: GridRowsProp) => GridRowsProp) => void;
     setRowModesModel: (
@@ -91,20 +95,20 @@ interface EditToolbarProps {
 }
 
 function EditToolbar(props: EditToolbarProps) {
-    const { setRows, setRowModesModel } = props;
+    const {setRows, setRowModesModel} = props;
 
     const handleClick = () => {
         const id = randomId();
-        setRows((oldRows) => [...oldRows, { id, name: '', age: '', isNew: true }]);
+        setRows((oldRows) => [...oldRows, {id, name: '', age: '', isNew: true}]);
         setRowModesModel((oldModel) => ({
             ...oldModel,
-            [id]: { mode: GridRowModes.Edit, fieldToFocus: 'name' },
+            [id]: {mode: GridRowModes.Edit, fieldToFocus: 'name'},
         }));
     };
 
     return (
         <GridToolbarContainer>
-            <Button color="primary" startIcon={<AddIcon />} onClick={handleClick}>
+            <Button color="primary" startIcon={<AddIcon/>} onClick={handleClick}>
                 Добавити учня
             </Button>
         </GridToolbarContainer>
@@ -123,11 +127,11 @@ const Journal = () => {
     };
 
     const handleEditClick = (id: GridRowId) => () => {
-        setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });
+        setRowModesModel({...rowModesModel, [id]: {mode: GridRowModes.Edit}});
     };
 
     const handleSaveClick = (id: GridRowId) => () => {
-        setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.View } });
+        setRowModesModel({...rowModesModel, [id]: {mode: GridRowModes.View}});
     };
 
     const handleDeleteClick = (id: GridRowId) => () => {
@@ -137,7 +141,7 @@ const Journal = () => {
     const handleCancelClick = (id: GridRowId) => () => {
         setRowModesModel({
             ...rowModesModel,
-            [id]: { mode: GridRowModes.View, ignoreModifications: true },
+            [id]: {mode: GridRowModes.View, ignoreModifications: true},
         });
 
         const editedRow = rows.find((row) => row.id === id);
@@ -147,7 +151,7 @@ const Journal = () => {
     };
 
     const processRowUpdate = (newRow: GridRowModel) => {
-        const updatedRow = { ...newRow, isNew: false };
+        const updatedRow = {...newRow, isNew: false};
         setRows(rows.map((row) => (row.id === newRow.id ? updatedRow : row)));
         return updatedRow;
     };
@@ -157,57 +161,63 @@ const Journal = () => {
     };
 
     const columns: GridColDef[] = [
-        { field: 'name', headerName: 'Name', width: 180, editable: true },
+        {field: 'name', headerName: "Ім'я", width: 180, editable: true},
         {
             field: 'absenteeism',
-            headerName: 'Absenteeism',
-            type: 'number',
+            headerName: 'Задача 1',
+            type: 'string',
             width: 150,
             align: 'left',
             headerAlign: 'left',
             editable: true,
+            renderEditCell: (params) => <EditSelectCell {...params} />,
+
         },
         {
             field: 'task1',
-            headerName: 'Task 1',
+            headerName: 'Задача 2',
             type: 'string',
             width: 150,
             editable: true,
+            renderEditCell: (params) => <EditSelectCell {...params} />,
         },
         {
             field: 'task2',
-            headerName: 'Task 2',
+            headerName: 'Задача 3',
             type: 'string',
             width: 150,
             editable: true,
+            renderEditCell: (params) => <EditSelectCell {...params} />,
         },
         {
             field: 'task3',
-            headerName: 'Task 3',
+            headerName: 'Задача 4',
             type: 'string',
             width: 150,
             editable: true,
+            renderEditCell: (params) => <EditSelectCell {...params} />,
         },
         {
             field: 'task4',
-            headerName: 'Task 4',
+            headerName: 'Задача 5',
             type: 'string',
             width: 150,
             editable: true,
+            renderEditCell: (params) => <EditSelectCell {...params} />,
         },
         {
             field: 'actions',
             type: 'actions',
-            headerName: 'Actions',
+            headerName: 'Взаємодія ',
             width: 100,
             cellClassName: 'actions',
-            getActions: ({ id }) => {
+            getActions: ({id}) => {
                 const isInEditMode = rowModesModel[id]?.mode === GridRowModes.Edit;
 
                 if (isInEditMode) {
                     return [
                         <GridActionsCellItem
-                            icon={<SaveIcon />}
+                            icon={<SaveIcon/>}
                             label="Save"
                             sx={{
                                 color: 'primary.main',
@@ -215,7 +225,7 @@ const Journal = () => {
                             onClick={handleSaveClick(id)}
                         />,
                         <GridActionsCellItem
-                            icon={<CancelIcon />}
+                            icon={<CancelIcon/>}
                             label="Cancel"
                             className="textPrimary"
                             onClick={handleCancelClick(id)}
@@ -226,14 +236,14 @@ const Journal = () => {
 
                 return [
                     <GridActionsCellItem
-                        icon={<EditIcon />}
+                        icon={<EditIcon/>}
                         label="Edit"
                         className="textPrimary"
                         onClick={handleEditClick(id)}
                         color="inherit"
                     />,
                     <GridActionsCellItem
-                        icon={<DeleteIcon />}
+                        icon={<DeleteIcon/>}
                         label="Delete"
                         onClick={handleDeleteClick(id)}
                         color="inherit"
@@ -256,8 +266,10 @@ const Journal = () => {
                 },
             }}
         >
-            <Typography sx={{margin:'32px 0'}} variant='h2'>Мій клас</Typography>
+            <Typography fontWeight={500} sx={{margin: '32px 0', width: 'fit-content', backgroundColor: "white",padding:"0 16px"}} variant='h1'>Мій
+                клас</Typography>
             <DataGrid
+                sx={{backgroundColor:'white'}}
                 rows={rows}
                 columns={columns}
                 editMode="row"
@@ -269,11 +281,12 @@ const Journal = () => {
                     toolbar: EditToolbar,
                 }}
                 slotProps={{
-                    toolbar: { setRows, setRowModesModel },
+                    toolbar: {setRows, setRowModesModel},
                 }}
             />
         </Box>
     );
 };
+
 
 export default Journal;

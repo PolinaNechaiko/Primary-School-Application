@@ -9,8 +9,8 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import logo from '../assets/logo.jpg'
 import user from '../assets/user.png'
-import { Unstable_Popup as BasePopup } from '@mui/base/Unstable_Popup';
-
+import {Unstable_Popup as BasePopup} from '@mui/base/Unstable_Popup';
+import backgroundImage from '../assets/background-image.png'
 import {navListFirst, navListSecond} from "../utils/options/navList.ts";
 import {Outlet, useLocation, useNavigate} from "react-router-dom";
 import {Stack} from "@mui/system";
@@ -108,7 +108,7 @@ const PrivateLayout = () => {
                                     component='span'>{getActivePage(pathname)}</Typography>
 
                         <Button aria-describedby={id} type="button" onClick={handleClick}>
-                            <img src={user } alt='icon'/>
+                            <img src={user} alt='icon'/>
                         </Button>
                         <BasePopup id={id} open={open} anchor={anchor}>
                             <PopupBody>
@@ -120,7 +120,14 @@ const PrivateLayout = () => {
                 </Box>
                 <Box
                     component="main"
-                    sx={{flexGrow: 1, bgcolor: 'background.default', p: 3}}
+                    sx={{
+                        flexGrow: 1,
+                        bgcolor: 'background.default',
+                        p: 3,
+                        backgroundImage: `url(${backgroundImage})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
+                    }}
                 >
                     <Outlet/>
                 </Box>
@@ -131,7 +138,7 @@ const PrivateLayout = () => {
 export {PrivateLayout}
 
 const PopupBody = styled('div')(
-    ({ theme }) => `
+    ({theme}) => `
   width: max-content;
   padding: 12px 16px;
   margin: 8px;

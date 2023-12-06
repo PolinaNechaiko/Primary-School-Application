@@ -22,6 +22,8 @@ export const FormTextField = ({
                         fontSize: '0.8rem',
                         fontWeight: 400,
                         color: '#32485F',
+                        backgroundColor:"white",
+                        width:"fit-content"
                     }}
                     className="form-input__label"
                 >
