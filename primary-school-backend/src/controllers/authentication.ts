@@ -1,6 +1,7 @@
 import express from "express";
-import {allowedRoles, createUser, getUserByEmail} from "../db/users";
+import {allowedRoles, createUser, getUserByEmail, getUserById, updateUser} from "../db/users";
 import {authentication, random} from "../helpers";
+import {getSubjectByCode} from "../db/subjects";
 
 export const login = async (req: express.Request, res: express.Response) => {
     try {
@@ -62,6 +63,55 @@ export const register = async (req: express.Request, res: express.Response) => {
     }
 }
 
+export const joinSubject = async (req: express.Request, res: express.Response) => {
+    try {
+        const { subjectCode } = req.body;
+        const userId = req.identity._id;
+
+        if (!subjectCode) {
+            return res.status(400).json({ message: "Subject code is required" });
+        }
+
+        // Перевіряємо чи існує предмет з таким кодом
+        const subject = await getSubjectByCode(subjectCode);
+        if (!subject) {
+            return res.status(404).json({ message: "Invalid subject code" });
+        }
+
+        // Отримуємо поточного користувача
+        const user = await getUserById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Оновлюємо користувача
+        const updatedUser = await updateUser(userId, {
+            isJoinedToSubject: true,
+            subjects: user.subjects ? [...user.subjects, subject._id] : [subject._id]
+        });
+
+        return res.status(200).json(updatedUser);
+    } catch (error) {
+        console.log(error);
+        return res.status(400).json({ message: "Error joining subject" });
+    }
+}
+
+export const getCurrentUser = async (req: express.Request, res: express.Response) => {
+    try {
+        const userId = req.identity._id;
+        const user = await getUserById(userId);
+        
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        
+        return res.status(200).json(user);
+    } catch (error) {
+        console.log(error);
+        return res.status(400).json({ message: "Error getting current user" });
+    }
+}
 
 // Add schedelue class
 // Add Electronik card

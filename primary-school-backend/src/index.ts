@@ -6,6 +6,8 @@ import cors from 'cors';
 import compression from 'compression';
 import mongoose from 'mongoose';
 import router from "./router";
+import dotenv from 'dotenv';
+dotenv.config();
 
 const app = express();
 
@@ -25,11 +27,15 @@ server.listen(8080, () => {
     console.log('Server is running on http://localhost:8080');
 });
 
-const MONGO_URL = 'mongodb+srv://Pasha:utOwrUhzFktnjV4Q@cluster1.ygh4l1z.mongodb.net/?retryWrites=true&w=majority';
-const MONGO_URL_POLINA = 'mongodb+srv://polinanechaikoit2022:LmQe9DhEpk8OZZdK@cluster0.dw4yfeu.mongodb.net/?retryWrites=true&w=majority';
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+    console.error('MONGODB_URI is not defined in environment variables');
+    process.exit(1);
+}
 
 mongoose.Promise = Promise;
-mongoose.connect(MONGO_URL_POLINA,)
+mongoose.connect(MONGODB_URI)
     .then(() => console.log('Connected to MongoDB'))
     .catch((error) => console.error('MongoDB connection error:', error));
 

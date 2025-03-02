@@ -4,6 +4,8 @@ const UserSchema = new mongoose.Schema({
     username: {type: String, required: true, unique: true},
     email: {type: String, required: true, unique: true},
     role: {type: String, required: true, default: "user"},
+    isJoinedToSubject: {type: Boolean, default: false},
+    subjects: [{type: mongoose.Schema.Types.ObjectId, ref: 'Subjects'}],
     authentication: {
         password: {type: String, required: true, select: false},
         salt: {type: String, select: false},
@@ -22,3 +24,4 @@ export const getUserById = (id: string) => UserModel.findById(id);
 export const createUser = (user: Record<string, any>) => new UserModel(user).save().then((user) => user.toObject());
 export const deleteUserById = (id: string) => UserModel.findByIdAndDelete({_id: id});
 export const updateUserById = (id:string, values: Record<string, any>) => UserModel.findByIdAndUpdate(id, values);
+export const updateUser = (id: string, values: Record<string, any>) => UserModel.findByIdAndUpdate(id, values, { new: true });
