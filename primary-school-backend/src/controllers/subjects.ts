@@ -111,3 +111,36 @@ export const createSubject = async (req: express.Request, res: express.Response)
         return res.status(500).json({ message: "Помилка при створенні предмету" });
     }
 };
+
+export const getSubjectsByTeacher = async (req: express.Request, res: express.Response) => {
+    try {
+        const { teacherId } = req.params;
+        
+        const subjects = await SubjectsModel.find({ createdBy: teacherId })
+            .populate('students', 'username')
+            .sort({ createdAt: -1 });
+        
+        return res.status(200).json(subjects);
+    } catch (error) {
+        console.log(error);
+        return res.status(400).json({ message: "Помилка при отриманні предметів" });
+    }
+};
+
+export const getSubjectById = async (req: express.Request, res: express.Response) => {
+    try {
+        const { subjectId } = req.params;
+        
+        const subject = await SubjectsModel.findById(subjectId)
+            .populate('students', 'username');
+        
+        if (!subject) {
+            return res.status(404).json({ message: "Предмет не знайдено" });
+        }
+        
+        return res.status(200).json(subject);
+    } catch (error) {
+        console.log(error);
+        return res.status(400).json({ message: "Помилка при отриманні предмету" });
+    }
+};

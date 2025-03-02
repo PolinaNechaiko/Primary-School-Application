@@ -5,7 +5,9 @@ import {
     getAllSubjectsList, 
     getAllSubjectTask, 
     getSubject, 
-    createSubject
+    createSubject,
+    getSubjectsByTeacher,
+    getSubjectById
 } from "../controllers/subjects";
 
 export default (router: express.Router) => {
@@ -14,4 +16,6 @@ export default (router: express.Router) => {
     router.get('/tasks', isAuthenticated, getAllSubjectTask);
     router.post('/new-task', isAuthenticated, createNewTask);
     router.post('/create-subject', isAuthenticated, createSubject);
+    router.get('/subjects/teacher/:teacherId', isAuthenticated, getSubjectsByTeacher);
+    router.get('/subject/:subjectId', isAuthenticated, getSubjectById);
 };

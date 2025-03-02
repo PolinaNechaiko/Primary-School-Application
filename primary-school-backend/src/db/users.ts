@@ -25,3 +25,14 @@ export const createUser = (user: Record<string, any>) => new UserModel(user).sav
 export const deleteUserById = (id: string) => UserModel.findByIdAndDelete({_id: id});
 export const updateUserById = (id:string, values: Record<string, any>) => UserModel.findByIdAndUpdate(id, values);
 export const updateUser = (id: string, values: Record<string, any>) => UserModel.findByIdAndUpdate(id, values, { new: true });
+
+export const getUsersByRole = async (role: string) => {
+    try {
+        return await UserModel.find({ role })
+            .select('-authentication')
+            .populate('subjects');
+    } catch (error) {
+        console.error('Error getting users by role:', error);
+        throw error;
+    }
+};

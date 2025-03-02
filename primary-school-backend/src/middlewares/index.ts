@@ -30,6 +30,20 @@ export const isAuthenticated = async (req: express.Request, res: express.Respons
         return res.sendStatus(400)
     }
 }
+export const isTeacher = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    try {
+        const user = get(req, 'identity');
+        
+        if (!user || user.role !== 'teacher') {
+            return res.sendStatus(403);
+        }
+        return next();
+    } catch (error) {
+        console.log(error);
+        return res.sendStatus(400);
+    }
+}
+
 export const isOwner = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
     try {
         const { id } = req.params;
