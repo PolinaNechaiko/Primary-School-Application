@@ -1,43 +1,34 @@
 import { useState, useEffect } from 'react';
-import { API } from '../services';
 import Cookies from 'js-cookie';
-
-interface User {
-    _id: string;
-    email: string;
-    username: string;
-    role: string;
-    isJoinedToSubject: boolean;
-    subjects: string[];
-}
+import { API } from '../services';
 
 export const useAuth = () => {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const checkAuth = async () => {
+        const fetchUser = async () => {
             const token = Cookies.get('sessionToken');
-            if (token) {
-                try {
-                    const response = await API.get('/auth/current-user');
-                    setUser(response.data);
-                    setIsAuthenticated(true);
-                } catch (error) {
-                    Cookies.remove('sessionToken');
-                    setIsAuthenticated(false);
-                    setUser(null);
-                }
-            } else {
-                setIsAuthenticated(false);
-                setUser(null);
+            if (!token) {
+                setLoading(false);
+                return;
             }
-            setLoading(false);
+
+            try {
+                // Отримуємо актуальну інформацію про користувача
+                const response = await API.get('/user/me');
+                setUser(response.data);
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+                // Якщо помилка, видаляємо токен
+                Cookies.remove('sessionToken');
+            } finally {
+                setLoading(false);
+            }
         };
 
-        checkAuth();
+        fetchUser();
     }, []);
 
-    return { isAuthenticated, user, loading };
+    return { user, loading };
 }; 

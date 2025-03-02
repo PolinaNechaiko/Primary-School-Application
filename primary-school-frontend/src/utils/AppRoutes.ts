@@ -7,7 +7,9 @@ export const AppRoutes = {
     INBOX:'/inbox',
     STUDENTS:'/students',
     SUBJECTS:'/subjects',
+    SUBJECT_DETAILS: '/subjects/:subjectId',
     TASKS:'/tasks',
     SCHEDULE:'/schedule',
     CREATE_SUBJECT :'/create-subject',
+    JOIN_SUBJECT: '/join-subject',
 }

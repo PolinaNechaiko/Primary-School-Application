@@ -95,9 +95,9 @@ const CreateSubject: React.FC = () => {
             setSnackbarSeverity('success');
             setOpenSnackbar(true);
             
-            // Перенаправляємо на сторінку предметів після успішного створення
+            // Перенаправляємо на основну сторінку після успішного створення
             setTimeout(() => {
-                navigate(AppRoutes.SUBJECTS);
+                navigate(AppRoutes.MAIN);
             }, 1500);
         } catch (error: any) {
             setSnackbarMessage(error.response?.data?.message || 'Помилка при створенні предмету');

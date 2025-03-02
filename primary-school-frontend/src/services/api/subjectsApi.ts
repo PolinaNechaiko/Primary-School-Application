@@ -26,9 +26,10 @@ export const createSubject = async (subjectData: SubjectData) => {
     }
 };
 
-export const getAllSubjects = async () => {
+export const getSubjects = async () => {
     try {
         const response = await API.get('/subjects');
+        console.log('API response for subjects:', response.data);
         return response.data;
     } catch (error) {
         console.error('Error fetching subjects:', error);
@@ -39,6 +40,26 @@ export const getAllSubjects = async () => {
 export const getSubjectByName = async (name: string) => {
     try {
         const response = await API.post('/subject', { name });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching subject:', error);
+        throw error;
+    }
+};
+
+export const getSubjectsByTeacher = async (teacherId: string) => {
+    try {
+        const response = await API.get(`/subjects/teacher/${teacherId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching teacher subjects:', error);
+        throw error;
+    }
+};
+
+export const getSubjectById = async (subjectId: string) => {
+    try {
+        const response = await API.get(`/subjects/${subjectId}`);
         return response.data;
     } catch (error) {
         console.error('Error fetching subject:', error);

@@ -144,3 +144,20 @@ export const getSubjectById = async (req: express.Request, res: express.Response
         return res.status(400).json({ message: "Помилка при отриманні предмету" });
     }
 };
+
+export const getSubjects = async (req: express.Request, res: express.Response) => {
+    try {
+        // Отримуємо всі предмети
+        const subjects = await SubjectsModel.find()
+            .populate('tasks')
+            .populate('students');
+        
+        return res.status(200).json(subjects);
+    } catch (error) {
+        console.error('Error getting subjects:', error);
+        return res.status(500).json({ 
+            message: "Error getting subjects",
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+};

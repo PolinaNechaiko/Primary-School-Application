@@ -49,7 +49,17 @@ export const getGradesForJournal = async (req: express.Request, res: express.Res
             .populate('task', 'name')
             .sort({ createdAt: -1 });
         
-        return res.status(200).json(grades);
+        // Перетворюємо масив оцінок у формат, зручний для фронтенду
+        const formattedGrades: Record<string, Record<string, number>> = {};
+        
+        grades.forEach(grade => {
+            if (!formattedGrades[grade.student._id]) {
+                formattedGrades[grade.student._id] = {};
+            }
+            formattedGrades[grade.student._id][grade.task._id] = grade.value;
+        });
+        
+        return res.status(200).json(formattedGrades);
     } catch (error) {
         console.log(error);
         return res.status(400).json({ message: "Помилка при отриманні оцінок" });

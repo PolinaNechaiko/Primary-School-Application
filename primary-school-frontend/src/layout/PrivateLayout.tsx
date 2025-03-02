@@ -124,7 +124,6 @@ const PrivateLayout = () => {
                         flexGrow: 1,
                         bgcolor: 'background.default',
                         p: 3,
-                        backgroundImage: `url(${backgroundImage})`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center'
                     }}

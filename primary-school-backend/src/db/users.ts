@@ -13,7 +13,7 @@ const UserSchema = new mongoose.Schema({
     },
 });
 // export const allowedRoles = ['doctor', 'user', 'admin'];
-export const allowedRoles = ['user', 'teacher'];
+export const allowedRoles = ['teacher', 'student'];
 
 export const UserModel = mongoose.model("User", UserSchema);
 
@@ -28,9 +28,55 @@ export const updateUser = (id: string, values: Record<string, any>) => UserModel
 
 export const getUsersByRole = async (role: string) => {
     try {
-        return await UserModel.find({ role })
-            .select('-authentication')
-            .populate('subjects');
+        const users = await UserModel.find({ role })
+            .select('-authentication.password -authentication.salt -authentication.sessionToken')
+            .populate({
+                path: 'subjects',
+                select: 'name teacher tasks grades',
+                populate: [
+                    {
+                        path: 'teacher',
+                        select: 'username email'
+                    },
+                    {
+                        path: 'tasks',
+                        select: 'title date'
+                    },
+                    {
+                        path: 'grades',
+                        select: 'value student task'
+                    }
+                ]
+            });
+        
+        // Форматуємо відповідь в залежності від ролі
+        return users.map(user => ({
+            _id: user._id,
+            email: user.email,
+            name: user.username,
+            subjects: user.subjects?.map((subject: any) => ({
+                _id: subject._id,
+                name: subject.name,
+                teacher: {
+                    _id: subject.teacher?._id,
+                    name: subject.teacher?.username,
+                    email: subject.teacher?.email
+                },
+                tasks: subject.tasks?.map((task: any) => ({
+                    _id: task._id,
+                    title: task.title,
+                    date: task.date,
+                    grades: subject.grades?.filter((grade: any) => 
+                        grade.task.toString() === task._id.toString()
+                    ).map((grade: any) => ({
+                        value: grade.value,
+                        studentId: grade.student
+                    }))
+                }))
+            })),
+            role: user.role,
+            isJoinedToSubject: user.isJoinedToSubject
+        }));
     } catch (error) {
         console.error('Error getting users by role:', error);
         throw error;

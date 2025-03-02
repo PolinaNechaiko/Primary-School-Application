@@ -9,9 +9,12 @@ import {loginUser} from "../../services/api/authorizationApi.ts";
 import {AppRoutes} from "../../utils/AppRoutes.ts";
 import {enqueueSnackbar} from "notistack";
 import Cookies from 'js-cookie';
+import { useState } from "react";
+import { CircularProgress } from "@mui/material";
 
 const Login = () => {
     const nav = useNavigate();
+    const [loading, setLoading] = useState(false);
     const {handleSubmit, control} =
         useForm<any>({
             mode: 'onTouched',
@@ -20,14 +23,44 @@ const Login = () => {
 
     const onSubmit = async (data: any) => {
         try {
-            const response = await loginUser(data)
-            Cookies.set('sessionToken', response.authentication.sessionToken, { expires: 7, secure: true, sameSite: 'Strict' });
-            nav(AppRoutes.INBOX)
+            setLoading(true);
+            const response = await loginUser(data);
+            
+            // Зберігаємо токен
+            Cookies.set('sessionToken', response.authentication.sessionToken, { 
+                expires: 7, 
+                secure: true, 
+                sameSite: 'Strict' 
+            });
+            
+            // Отримуємо інформацію про користувача
+            const userData = response.user;
+            
+            // Перенаправляємо користувача в залежності від його ролі та стану
+            if (userData.role === 'teacher') {
+                // Якщо вчитель не має предметів, перенаправляємо на створення предмету
+                if (!userData.subjects || userData.subjects.length === 0) {
+                    nav(AppRoutes.CREATE_SUBJECT);
+                } else {
+                    // Інакше на сторінку предметів
+                    nav(AppRoutes.SUBJECTS);
+                }
+            } else {
+                // Якщо учень не приєднався до предмету, перенаправляємо на сторінку приєднання
+                if (!userData.isJoinedToSubject) {
+                    nav(AppRoutes.JOIN_SUBJECT);
+                } else {
+                    // Інакше на сторінку предметів
+                    nav(AppRoutes.SUBJECTS);
+                }
+            }
         } catch (e) {
             enqueueSnackbar('Невірні дані !', {
                 variant: 'error',
                 autoHideDuration: 3000,
             });
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -68,7 +101,14 @@ const Login = () => {
                     Створити акаунт
                 </Link>
                 <Stack mt={2} direction='row'>
-                    <Button sx={{width: '100%'}} variant='contained' type='submit'>Увійти</Button>
+                    <Button 
+                        sx={{width: '100%'}} 
+                        variant='contained' 
+                        type='submit'
+                        disabled={loading}
+                    >
+                        {loading ? <CircularProgress size={24} /> : 'Увійти'}
+                    </Button>
                 </Stack>
             </form>
         </Stack>
