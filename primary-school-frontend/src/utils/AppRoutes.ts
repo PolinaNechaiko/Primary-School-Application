@@ -8,6 +8,6 @@ export const AppRoutes = {
     STUDENTS:'/students',
     SUBJECTS:'/subjects',
     TASKS:'/tasks',
-    SCHEDULE:'/schedule'
-
+    SCHEDULE:'/schedule',
+    CREATE_SUBJECT :'/create-subject',
 }

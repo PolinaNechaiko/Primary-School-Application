@@ -11,6 +11,7 @@ import ComingSoon from "./pages/ComingSoon/ComingSoon.tsx";
 import Subjects from "./pages/Classes/Classes.tsx";
 import Schedule from "./pages/Schedule/Schedule.tsx";
 import {API, configureInterceptorsForProject} from "./services";
+import CreateSubject from './pages/CreateSubject/CreateSubject.tsx';
 
 function App() {
     configureInterceptorsForProject(API);
@@ -27,6 +28,7 @@ function App() {
 
                     <Route index path={AppRoutes.SUBJECTS} element={<Subjects/>}/>
                     <Route index path={AppRoutes.SCHEDULE} element={<Schedule/>}/>
+                    <Route path={AppRoutes.CREATE_SUBJECT} element={<CreateSubject />} />
 
                     <Route path="*" element={<ComingSoon />} />
 

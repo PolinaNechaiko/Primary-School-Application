@@ -3,7 +3,8 @@ import {
     getAllSubjects,
     getSubjectByName,
     getSubjectTaskById,
-    SubjectsModel
+    SubjectsModel,
+    generateUniqueCode
 } from "../db/subjects";
 
 export const getSubject = async (req: express.Request, res: express.Response) => {
@@ -72,5 +73,41 @@ export const createNewTask = async (req: express.Request, res: express.Response)
     } catch (error) {
         console.error(error);
         return res.sendStatus(500); // Internal Server Error
+    }
+};
+
+export const createSubject = async (req: express.Request, res: express.Response) => {
+    try {
+        const { name, description, coverImage, time } = req.body;
+
+        if (!name || !description || !coverImage || !time) {
+            return res.status(400).json({ message: "Усі поля є обов'язковими" });
+        }
+
+        // Перевіряємо чи існує предмет з таким ім'ям
+        const existingSubjectByName = await getSubjectByName(name);
+        if (existingSubjectByName) {
+            return res.status(400).json({ message: "Предмет з такою назвою вже існує" });
+        }
+
+        // Генеруємо унікальний код
+        const code = await generateUniqueCode();
+
+        // Створюємо новий предмет
+        const newSubject = new SubjectsModel({
+            name,
+            description,
+            coverImage,
+            code,
+            time,
+            tasks: [] // Початково предмет не має завдань
+        });
+
+        await newSubject.save();
+
+        return res.status(201).json(newSubject);
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Помилка при створенні предмету" });
     }
 };

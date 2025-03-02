@@ -100,7 +100,9 @@ export const joinSubject = async (req: express.Request, res: express.Response) =
 export const getCurrentUser = async (req: express.Request, res: express.Response) => {
     try {
         const userId = req.identity._id;
-        const user = await getUserById(userId);
+        
+        // Отримуємо користувача з бази даних з інформацією про предмети
+        const user = await getUserById(userId).populate('subjects');
         
         if (!user) {
             return res.status(404).json({ message: "User not found" });
