@@ -89,7 +89,7 @@ const PrivateLayout = () => {
                     <Box sx={{flexGrow: 1, display: 'flex', alignItems: 'center'}}>
                         <img src={logo} alt="logo" style={{width: '40px', height: '40px', marginRight: '10px'}}/>
                         <Typography variant="h6" noWrap component="div">
-                            Primary School
+                            Віртуальна початкова школа
                         </Typography>
                     </Box>
                     <Box sx={{display: 'flex', alignItems: 'center'}}>
