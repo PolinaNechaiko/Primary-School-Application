@@ -10,18 +10,24 @@ import ListItemText from '@mui/material/ListItemText';
 import logo from '../assets/logo.jpg'
 import user from '../assets/user.png'
 import {Unstable_Popup as BasePopup} from '@mui/base/Unstable_Popup';
-import backgroundImage from '../assets/background-image.png'
-import {navListFirst, navListSecond} from "../utils/options/navList.ts";
+import {navListFirst, navListSecond, studentNavListFirst, studentNavListSecond} from "../utils/options/navList.ts";
 import {Outlet, useLocation, useNavigate} from "react-router-dom";
 import {Stack} from "@mui/system";
 import {AppRoutes} from "../utils/AppRoutes.ts";
-import React from "react";
+import React, { useRef } from "react";
 import Cookies from "js-cookie";
+import { useAuth } from "../hooks/useAuth";
+import CampaignIcon from '@mui/icons-material/Campaign';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 
 const drawerWidth = 240;
 const PrivateLayout = () => {
     const nav = useNavigate();
     const {pathname} = useLocation();
+    const { user: currentUser } = useAuth();
+    const isStudent = currentUser?.role === 'student';
+    const audioRef = useRef<HTMLAudioElement>(null);
+
     const handleUserClick = (route: string) => {
         nav(route)
     }
@@ -33,6 +39,13 @@ const PrivateLayout = () => {
     }
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
         setAnchor(anchor ? null : event.currentTarget);
+    };
+
+    const playAudio = (audioSrc: string) => {
+        if (audioRef.current) {
+            audioRef.current.src = audioSrc;
+            audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+        }
     };
 
     const open = Boolean(anchor);
@@ -49,13 +62,29 @@ const PrivateLayout = () => {
             case AppRoutes.SCHEDULE:
                 return 'Розклад'
             case AppRoutes.SUBJECTS:
-                return 'Предмети'
+                return isStudent ? 'Мої предмети' : 'Предмети'
             case AppRoutes.TASKS:
                 return 'Завдання'
+            case AppRoutes.WEEKLY_GAME:
+                return 'Гра тижня'
+            case AppRoutes.STUDENT_GRADES:
+                return 'Мої оцінки'
+            default:
+                if (link.startsWith('/subjects/')) {
+                    return 'Деталі предмету';
+                }
+                return 'Unknown';
         }
     }
+
+    // Choose the appropriate navigation lists based on user role
+    const firstNavList = isStudent ? studentNavListFirst : navListFirst;
+    const secondNavList = isStudent ? studentNavListSecond : navListSecond;
+
     return (
         <Box sx={{display: 'flex', height: '100vh'}}>
+            <audio ref={audioRef} />
+            
             <Drawer
                 sx={{
                     width: drawerWidth,
@@ -73,8 +102,24 @@ const PrivateLayout = () => {
                 </Toolbar>
                 <Divider/>
                 <List>
-                    {navListFirst.map(({label, icon, route}, index) => (
-                        <ListItem onClick={() => handleUserClick(route)} key={index} disablePadding>
+                    {firstNavList.map(({label, icon, route}, index) => (
+                        <ListItem 
+                            onClick={() => handleUserClick(route)} 
+                            key={index} 
+                            disablePadding
+                            secondaryAction={
+                                isStudent && (
+                                    <VolumeUpIcon 
+                                        color="primary" 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            playAudio(`/audio/menu-${label.toLowerCase().replace(/\s+/g, '-')}.mp3`);
+                                        }}
+                                        sx={{ cursor: 'pointer' }}
+                                    />
+                                )
+                            }
+                        >
                             <ListItemButton>
                                 <ListItemIcon>
                                     <img style={{width: '21px', height: '21px'}} src={icon} alt='Icon'/>
@@ -86,8 +131,24 @@ const PrivateLayout = () => {
                 </List>
                 <Divider/>
                 <List>
-                    {navListSecond.map(({label, icon, route}, index) => (
-                        <ListItem onClick={() => handleUserClick(route)} key={index} disablePadding>
+                    {secondNavList.map(({label, icon, route}, index) => (
+                        <ListItem 
+                            onClick={() => handleUserClick(route)} 
+                            key={index} 
+                            disablePadding
+                            secondaryAction={
+                                isStudent && (
+                                    <VolumeUpIcon 
+                                        color="primary" 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            playAudio(`/audio/menu-${label.toLowerCase().replace(/\s+/g, '-')}.mp3`);
+                                        }}
+                                        sx={{ cursor: 'pointer' }}
+                                    />
+                                )
+                            }
+                        >
                             <ListItemButton>
                                 <ListItemIcon>
                                     <img style={{width: '21px', height: '21px'}} src={icon} alt='Icon'/>
@@ -104,11 +165,45 @@ const PrivateLayout = () => {
                     padding: '0 16px', borderBottom: '1px solid', borderColor: 'rgba(0, 0, 0, 0.12)'
                 }}>
                     <Toolbar sx={{display: 'flex', justifyContent: 'space-between'}}>
-                        <Typography fontWeight={400} variant='h1'
-                                    component='span'>{getActivePage(pathname)}</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography fontWeight={400} variant='h1' component='span'>
+                                {getActivePage(pathname)}
+                            </Typography>
+                            {isStudent && (
+                                <VolumeUpIcon 
+                                    color="primary" 
+                                    onClick={() => playAudio(`/audio/page-${getActivePage(pathname).toLowerCase().replace(/\s+/g, '-')}.mp3`)}
+                                    sx={{ cursor: 'pointer' }}
+                                />
+                            )}
+                        </Box>
 
-                        <Button aria-describedby={id} type="button" onClick={handleClick}>
+                        <Button 
+                            aria-describedby={id} 
+                            type="button" 
+                            onClick={handleClick}
+                            sx={{ position: 'relative' }}
+                        >
                             <img src={user} alt='icon'/>
+                            {isStudent && (
+                                <VolumeUpIcon 
+                                    color="primary" 
+                                    sx={{ 
+                                        position: 'absolute', 
+                                        top: -10, 
+                                        right: -10, 
+                                        cursor: 'pointer',
+                                        fontSize: '1.2rem',
+                                        backgroundColor: 'white',
+                                        borderRadius: '50%',
+                                        padding: '2px'
+                                    }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        playAudio('/audio/logout.mp3');
+                                    }}
+                                />
+                            )}
                         </Button>
                         <BasePopup id={id} open={open} anchor={anchor}>
                             <PopupBody>

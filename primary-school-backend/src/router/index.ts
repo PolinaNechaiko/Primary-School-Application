@@ -6,6 +6,8 @@ import students from "./students";
 import {isAuthenticated} from "../middlewares";
 import {joinSubject} from "../controllers/authentication";
 import schedule from "./schedule";
+import weeklyGame from "./weeklyGame";
+import grades from "./grades";
 
 const router = express.Router();
 
@@ -15,6 +17,8 @@ export default ():  express.Router => {
     subjects(router);
     students(router);
     schedule(router);
+    weeklyGame(router);
+    grades(router);
     // Додаємо новий маршрут
     router.post('/join-subject', isAuthenticated, joinSubject);
     

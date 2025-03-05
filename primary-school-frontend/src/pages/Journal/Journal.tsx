@@ -21,7 +21,10 @@ import {
     Select,
     MenuItem,
     FormControl,
-    InputLabel
+    InputLabel,
+    ButtonGroup,
+    Chip,
+    Tooltip
 } from '@mui/material';
 import { useAuth } from '../../hooks/useAuth';
 import { getSubjects } from '../../services/api/subjectsApi';
@@ -33,23 +36,59 @@ import SentimentSatisfiedIcon from '@mui/icons-material/SentimentSatisfied';
 import SentimentDissatisfiedIcon from '@mui/icons-material/SentimentDissatisfied';
 import SentimentVeryDissatisfiedIcon from '@mui/icons-material/SentimentVeryDissatisfied';
 
+interface Subject {
+    _id: string;
+    name: string;
+    description: string;
+    coverImage: string;
+    code: string;
+    time: string[];
+    tasks: Task[];
+    __v: number;
+}
+
+interface Task {
+    _id: string;
+    name: string;
+    descriptions: string;
+}
+
+interface Student {
+    _id: string;
+    firstName: string;
+    lastName: string;
+}
+
+interface QuickAccessSubject {
+    id: string | number;
+    name: string;
+}
+
 const Journal = () => {
     const { user, loading: userLoading } = useAuth();
     const isTeacher = user?.role === 'teacher';
     
-    const [subjects, setSubjects] = useState<any[]>([]);
+    const [subjects, setSubjects] = useState<Subject[]>([]);
     const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
-    const [tasks, setTasks] = useState<any[]>([]);
-    const [students, setStudents] = useState<any[]>([]);
-    const [grades, setGrades] = useState<Record<string, Record<string, number>>>({});
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [students, setStudents] = useState<Student[]>([]);
+    const [grades, setGrades] = useState<Record<string, Record<string, string>>>({});
     const [loading, setLoading] = useState(true);
-    const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
-    const [currentCell, setCurrentCell] = useState<{studentId: string, taskId: string} | null>(null);
-    const [openSnackbar, setOpenSnackbar] = useState(false);
+    const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+    const [currentStudent, setCurrentStudent] = useState<string | null>(null);
+    const [currentTask, setCurrentTask] = useState<string | null>(null);
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
     const [currentTab, setCurrentTab] = useState(0);
     const [error, setError] = useState<string | null>(null);
+    
+    // Предмети для швидкого доступу у вкладках
+    const [quickAccessSubjects, setQuickAccessSubjects] = useState<QuickAccessSubject[]>([
+        { id: 0, name: 'Я досліджую світ' },
+        { id: 1, name: 'Математика' },
+        { id: 2, name: 'Українська мова' }
+    ]);
 
     useEffect(() => {
         if (user && !userLoading) {
@@ -67,31 +106,50 @@ const Journal = () => {
             console.log('Subjects data:', subjectsData);
             setSubjects(subjectsData);
 
-            if (subjectsData.length > 0) {
-                setSelectedSubject(subjectsData[0]._id);
+            // Отримуємо список студентів
+            const studentsData = await getStudentsList();
+            console.log('Students data:', studentsData);
+            setStudents(studentsData);
+
+            // Створюємо масив для швидкого доступу до предметів
+            if (subjectsData && subjectsData.length > 0) {
+                // Шукаємо предмети, які відповідають нашим стандартним вкладкам
+                const standardSubjects = [
+                    'Я досліджую світ',
+                    'Математика',
+                    'Українська мова'
+                ];
                 
-                // Отримуємо список студентів
-                const studentsData = await getStudentsList();
-                console.log('Students data:', studentsData);
-                setStudents(studentsData);
-
-                // Отримуємо оцінки для першого предмету
-                try {
-                    const gradesData = await getGradesForJournal(subjectsData[0]._id);
-                    console.log('Grades data:', gradesData);
-                    setGrades(gradesData || {});
-                } catch (error) {
-                    console.error('Error fetching grades:', error);
-                    setGrades({});
+                const foundSubjects = standardSubjects.map((name, index) => {
+                    const found = subjectsData.find((s: Subject) => s.name === name);
+                    return found 
+                        ? { id: found._id, name: found.name } 
+                        : { id: index, name };
+                });
+                
+                // Якщо знайдено менше 3 стандартних предметів, додаємо інші з наявних
+                if (foundSubjects.filter(s => typeof s.id === 'string').length < 3) {
+                    const additionalSubjects = subjectsData
+                        .filter((s: Subject) => !standardSubjects.includes(s.name))
+                        .slice(0, 3 - foundSubjects.filter((s: QuickAccessSubject) => typeof s.id === 'string').length)
+                        .map((s: Subject) => ({ id: s._id, name: s.name }));
+                    
+                    // Замінюємо числові id на реальні id предметів
+                    for (let i = 0; i < foundSubjects.length; i++) {
+                        if (typeof foundSubjects[i].id === 'number' && additionalSubjects.length > 0) {
+                            foundSubjects[i] = additionalSubjects.shift()!;
+                        }
+                    }
                 }
-
-                // Отримуємо завдання з першого предмету
-                if (subjectsData[0].tasks && subjectsData[0].tasks.length > 0) {
-                    setTasks(subjectsData[0].tasks);
-                    console.log('Tasks:', subjectsData[0].tasks);
-                } else {
-                    console.log('No tasks found for subject');
-                    setTasks([]);
+                
+                setQuickAccessSubjects(foundSubjects);
+                
+                // Вибираємо перший предмет для відображення
+                const firstSubject = foundSubjects.find(s => typeof s.id === 'string');
+                if (firstSubject && typeof firstSubject.id === 'string') {
+                    await handleSubjectChange(firstSubject.id);
+                } else if (subjectsData.length > 0) {
+                    await handleSubjectChange(subjectsData[0]._id);
                 }
             }
         } catch (error) {
@@ -102,8 +160,13 @@ const Journal = () => {
         }
     };
 
-    const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    const handleTabChange = async (event: React.SyntheticEvent, newValue: number) => {
         setCurrentTab(newValue);
+        
+        const selectedTab = quickAccessSubjects[newValue];
+        if (selectedTab && typeof selectedTab.id === 'string') {
+            await handleSubjectChange(selectedTab.id);
+        }
     };
 
     const handleSubjectChange = async (subjectId: string) => {
@@ -112,11 +175,20 @@ const Journal = () => {
             setSelectedSubject(subjectId);
 
             const selectedSubjectData = subjects.find(s => s._id === subjectId);
-            setTasks(selectedSubjectData?.tasks || []);
+            if (selectedSubjectData && selectedSubjectData.tasks) {
+                setTasks(selectedSubjectData.tasks);
+            } else {
+                setTasks([]);
+            }
 
-            const gradesData = await getGradesForJournal(subjectId);
-            setGrades(gradesData);
-        } catch (error) {
+            try {
+                const gradesData = await getGradesForJournal(subjectId);
+                setGrades(gradesData || {});
+            } catch (gradeError) {
+                console.error('Error fetching grades:', gradeError);
+                setGrades({});
+            }
+        } catch (error: any) {
             console.error('Error changing subject:', error);
             setError('Помилка при зміні предмету');
         } finally {
@@ -126,50 +198,51 @@ const Journal = () => {
 
     const handleGradeClick = (event: React.MouseEvent<HTMLButtonElement>, studentId: string, taskId: string) => {
         setAnchorEl(event.currentTarget);
-        setCurrentCell({ studentId, taskId });
+        setCurrentStudent(studentId);
+        setCurrentTask(taskId);
     };
 
     const handleGradeClose = () => {
         setAnchorEl(null);
-        setCurrentCell(null);
+        setCurrentStudent(null);
+        setCurrentTask(null);
     };
 
     const handleSetGrade = async (grade: string) => {
-        if (!currentCell || !selectedSubject) return;
+        if (!currentStudent || !currentTask || !selectedSubject) return;
         
         try {
-            const { studentId, taskId } = currentCell;
-            
             await setGrade({
-                studentId,
-                taskId,
+                studentId: currentStudent,
+                taskId: currentTask,
                 subjectId: selectedSubject,
                 grade
             });
             
             // Оновлюємо локальний стан оцінок
-            setGrades(prev => ({
-                ...prev,
-                [studentId]: {
-                    ...prev[studentId],
-                    [taskId]: grade
+            setGrades(prev => {
+                const updatedGrades = { ...prev };
+                if (!updatedGrades[currentStudent]) {
+                    updatedGrades[currentStudent] = {};
                 }
-            }));
+                updatedGrades[currentStudent][currentTask] = grade;
+                return updatedGrades;
+            });
             
             setSnackbarMessage('Оцінка успішно виставлена');
             setSnackbarSeverity('success');
-            setOpenSnackbar(true);
+            setSnackbarOpen(true);
         } catch (error) {
             console.error('Error setting grade:', error);
             setSnackbarMessage('Помилка при виставленні оцінки');
             setSnackbarSeverity('error');
-            setOpenSnackbar(true);
+            setSnackbarOpen(true);
         } finally {
             handleGradeClose();
         }
     };
 
-    const getGradeIcon = (grade: string) => {
+    const getGradeIcon = (grade: string): JSX.Element => {
         switch (grade) {
             case 'excellent':
                 return <SentimentVerySatisfiedIcon color="success" />;
@@ -180,7 +253,22 @@ const Journal = () => {
             case 'poor':
                 return <SentimentVeryDissatisfiedIcon color="error" />;
             default:
-                return null;
+                return <SentimentSatisfiedIcon color="disabled" />;
+        }
+    };
+
+    const getGradeText = (grade: string) => {
+        switch (grade) {
+            case 'excellent':
+                return 'Відмінно';
+            case 'good':
+                return 'Добре';
+            case 'satisfactory':
+                return 'Задовільно';
+            case 'poor':
+                return 'Потребує доопрацювання';
+            default:
+                return '';
         }
     };
 
@@ -223,9 +311,9 @@ const Journal = () => {
             
             <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
                 <Tabs value={currentTab} onChange={handleTabChange}>
-                    <Tab label="ЯФС" />
-                    <Tab label="Матем." />
-                    <Tab label="Укр мова" />
+                    {quickAccessSubjects.map((subject, index) => (
+                        <Tab key={index} label={subject.name} />
+                    ))}
                 </Tabs>
             </Box>
             
@@ -234,7 +322,7 @@ const Journal = () => {
                     <InputLabel>Оберіть предмет</InputLabel>
                     <Select
                         value={selectedSubject || ''}
-                        onChange={(e) => handleSubjectChange(e.target.value)}
+                        onChange={(e) => handleSubjectChange(e.target.value as string)}
                         label="Оберіть предмет"
                     >
                         {subjects.map((subject) => (
@@ -250,61 +338,68 @@ const Journal = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
                     <CircularProgress />
                 </Box>
+            ) : error ? (
+                <Alert severity="error" sx={{ mt: 2 }}>
+                    {error}
+                </Alert>
+            ) : tasks.length === 0 ? (
+                <Alert severity="info" sx={{ mt: 2 }}>
+                    Для цього предмету ще не створено завдань
+                </Alert>
+            ) : students.length === 0 ? (
+                <Alert severity="info" sx={{ mt: 2 }}>
+                    До цього предмету ще не приєднались учні
+                </Alert>
             ) : (
-                <>
-                    {tasks.length === 0 ? (
-                        <Typography variant="body1">
-                            Для цього предмету ще не створено завдань
-                        </Typography>
-                    ) : students.length === 0 ? (
-                        <Typography variant="body1">
-                            До цього предмету ще не приєдналися учні
-                        </Typography>
-                    ) : (
-                        <TableContainer component={Paper}>
-                            <Table sx={{ minWidth: 650 }}>
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>Учень</TableCell>
-                                        {tasks.map((task) => (
-                                            <TableCell key={task._id} align="center">
+                <TableContainer component={Paper}>
+                    <Table sx={{ minWidth: 650 }} size="small">
+                        <TableHead>
+                            <TableRow>
+                                <TableCell sx={{ fontWeight: 'bold', width: '200px' }}>Учень</TableCell>
+                                {tasks.map((task) => (
+                                    <TableCell key={task._id} align="center" sx={{ fontWeight: 'bold' }}>
+                                        <Tooltip title={task.descriptions || ''} arrow>
+                                            <Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
                                                 {task.name}
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {students.map((student) => (
-                                        <TableRow key={student._id}>
-                                            <TableCell component="th" scope="row">
-                                                {student.username}
-                                            </TableCell>
-                                            {tasks.map((task) => (
-                                                <TableCell key={task._id} align="center">
-                                                    {grades[student._id]?.[task._id] ? (
-                                                        <Button
-                                                            onClick={(e) => handleGradeClick(e, student._id, task._id)}
-                                                        >
-                                                            {getGradeIcon(grades[student._id][task._id])}
-                                                        </Button>
+                                            </Typography>
+                                        </Tooltip>
+                                    </TableCell>
+                                ))}
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {students.map((student) => (
+                                <TableRow key={student._id} hover>
+                                    <TableCell component="th" scope="row">
+                                        {student.firstName} {student.lastName}
+                                    </TableCell>
+                                    {tasks.map((task) => {
+                                        const grade = grades[student._id]?.[task._id];
+                                        return (
+                                            <TableCell key={`${student._id}-${task._id}`} align="center">
+                                                <Button
+                                                    onClick={(e) => handleGradeClick(e, student._id, task._id)}
+                                                    variant="outlined"
+                                                    color={grade ? 'primary' : 'inherit'}
+                                                    size="small"
+                                                    sx={{ minWidth: 40, minHeight: 40 }}
+                                                >
+                                                    {grade ? (
+                                                        <Tooltip title={getGradeText(grade)} arrow>
+                                                            {getGradeIcon(grade)}
+                                                        </Tooltip>
                                                     ) : (
-                                                        <Button
-                                                            variant="outlined"
-                                                            size="small"
-                                                            onClick={(e) => handleGradeClick(e, student._id, task._id)}
-                                                        >
-                                                            Оцінити
-                                                        </Button>
+                                                        '+'
                                                     )}
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    )}
-                </>
+                                                </Button>
+                                            </TableCell>
+                                        );
+                                    })}
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
             )}
             
             <Popover
@@ -322,75 +417,55 @@ const Journal = () => {
                 }}
             >
                 <Box sx={{ p: 2 }}>
-                    <Typography variant="subtitle1" gutterBottom>
+                    <Typography variant="subtitle2" gutterBottom>
                         Виберіть оцінку:
                     </Typography>
-                    <Grid container spacing={1}>
-                        <Grid item>
-                            <Button 
-                                variant="contained" 
-                                color="success" 
-                                onClick={() => handleSetGrade('excellent')}
-                                startIcon={<SentimentVerySatisfiedIcon />}
-                            >
-                                Відмінно
-                            </Button>
-                        </Grid>
-                        <Grid item>
-                            <Button 
-                                variant="contained" 
-                                color="primary" 
-                                onClick={() => handleSetGrade('good')}
-                                startIcon={<SentimentSatisfiedIcon />}
-                            >
-                                Добре
-                            </Button>
-                        </Grid>
-                        <Grid item>
-                            <Button 
-                                variant="contained" 
-                                color="warning" 
-                                onClick={() => handleSetGrade('satisfactory')}
-                                startIcon={<SentimentDissatisfiedIcon />}
-                            >
-                                Задовільно
-                            </Button>
-                        </Grid>
-                        <Grid item>
-                            <Button 
-                                variant="contained" 
-                                color="error" 
-                                onClick={() => handleSetGrade('poor')}
-                                startIcon={<SentimentVeryDissatisfiedIcon />}
-                            >
-                                Незадовільно
-                            </Button>
-                        </Grid>
-                    </Grid>
+                    <ButtonGroup orientation="vertical" variant="outlined" sx={{ mt: 1 }}>
+                        <Button 
+                            onClick={() => handleSetGrade('excellent')}
+                            startIcon={<SentimentVerySatisfiedIcon color="success" />}
+                            sx={{ justifyContent: 'flex-start', mb: 1 }}
+                        >
+                            Відмінно
+                        </Button>
+                        <Button 
+                            onClick={() => handleSetGrade('good')}
+                            startIcon={<SentimentSatisfiedIcon color="primary" />}
+                            sx={{ justifyContent: 'flex-start', mb: 1 }}
+                        >
+                            Добре
+                        </Button>
+                        <Button 
+                            onClick={() => handleSetGrade('satisfactory')}
+                            startIcon={<SentimentDissatisfiedIcon color="warning" />}
+                            sx={{ justifyContent: 'flex-start', mb: 1 }}
+                        >
+                            Задовільно
+                        </Button>
+                        <Button 
+                            onClick={() => handleSetGrade('poor')}
+                            startIcon={<SentimentVeryDissatisfiedIcon color="error" />}
+                            sx={{ justifyContent: 'flex-start' }}
+                        >
+                            Потребує доопрацювання
+                        </Button>
+                    </ButtonGroup>
                 </Box>
             </Popover>
             
-            <Snackbar 
-                open={openSnackbar} 
-                autoHideDuration={6000} 
-                onClose={() => setOpenSnackbar(false)}
+            <Snackbar
+                open={snackbarOpen}
+                autoHideDuration={6000}
+                onClose={() => setSnackbarOpen(false)}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
             >
-                <Alert 
-                    onClose={() => setOpenSnackbar(false)} 
+                <Alert
+                    onClose={() => setSnackbarOpen(false)}
                     severity={snackbarSeverity}
                 >
                     {snackbarMessage}
                 </Alert>
             </Snackbar>
-
-            {error && (
-                <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
-                    <Alert onClose={() => setError(null)} severity="error">
-                        {error}
-                    </Alert>
-                </Snackbar>
-            )}
         </Container>
     );
 };

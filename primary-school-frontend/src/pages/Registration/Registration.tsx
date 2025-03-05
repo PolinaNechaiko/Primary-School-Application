@@ -14,7 +14,7 @@ const Registration = () => {
     const {handleSubmit, control} =
         useForm<any>({
             mode: 'onTouched',
-            defaultValues: {username:'',password:'',role:'user',email:''},
+            defaultValues: {username:'',password:'',role:'student',email:''},
         });
     const onSubmit = async (data: any) => {
         try {
@@ -48,7 +48,7 @@ const Registration = () => {
                     <ControlledTextField inputProps={{type:'password'}} rules={required} sx={{width: '100%',type:'password'}}  label='Введіть свій пароль' name='password'
                                          control={control}/>
                     <ControlledSelect selectProps={{sx: {width: '100%'}}}
-                                      items={[{value: 'user', label: 'Учень'}, {value: "teacher", label: "Викладач"}]}
+                                      items={[{value: 'student', label: 'Учень'}, {value: "teacher", label: "Викладач"}]}
                                       label='Оберіть вашу роль' name="role" sx={{width: '100%'}} rules={required}
                                       control={control}/>
                 </Stack>

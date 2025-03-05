@@ -15,10 +15,17 @@ import {
     CardActionArea,
     Snackbar,
     Alert,
-    styled
+    styled,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    IconButton,
+    Tooltip
 } from '@mui/material';
 import { AppRoutes } from '../../utils/AppRoutes';
 import { createSubject, SubjectData } from '../../services/api/subjectsApi';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
 // Розширений масив доступних обкладинок
 const availableCoverImages = [
@@ -57,12 +64,15 @@ interface FormData extends SubjectData {}
 
 const CreateSubject: React.FC = () => {
     const navigate = useNavigate();
-    const [selectedCover, setSelectedCover] = useState<string | null>(null);
+    const [selectedCover, setSelectedCover] = useState<string>('');
     const [openSnackbar, setOpenSnackbar] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+    const [createdSubject, setCreatedSubject] = useState<any>(null);
+    const [openCodeDialog, setOpenCodeDialog] = useState(false);
+    const [timeSlots, setTimeSlots] = useState<string[]>([]);
 
-    const { handleSubmit, control, formState: { errors } } = useForm<FormData>({
+    const { handleSubmit, control, formState: { errors }, reset } = useForm<FormData>({
         defaultValues: {
             name: '',
             description: '',
@@ -76,40 +86,67 @@ const CreateSubject: React.FC = () => {
     };
 
     const onSubmit = async (data: FormData) => {
-        if (!selectedCover) {
-            setSnackbarMessage('Будь ласка, оберіть обкладинку для предмету');
-            setSnackbarSeverity('error');
-            setOpenSnackbar(true);
-            return;
-        }
-
         try {
-            const subjectData: SubjectData = {
+            
+            if (!selectedCover) {
+                setSnackbarMessage('Будь ласка, виберіть обкладинку для предмету');
+                setSnackbarSeverity('error');
+                setOpenSnackbar(true);
+                setIsSubmitting(false);
+                return;
+            }
+            
+            const subjectData = {
                 ...data,
-                coverImage: selectedCover
+                coverImage: selectedCover,
+                time: timeSlots
             };
             
-            await createSubject(subjectData);
+            const response = await createSubject(subjectData);
+            setCreatedSubject(response);
+            setOpenCodeDialog(true);
             
             setSnackbarMessage('Предмет успішно створено!');
             setSnackbarSeverity('success');
             setOpenSnackbar(true);
             
-            // Перенаправляємо на основну сторінку після успішного створення
-            setTimeout(() => {
-                navigate(AppRoutes.MAIN);
-            }, 1500);
-        } catch (error: any) {
-            setSnackbarMessage(error.response?.data?.message || 'Помилка при створенні предмету');
+            reset();
+            setSelectedCover('');
+            setTimeSlots([]);
+        } catch (error) {
+            console.error('Error creating subject:', error);
+            setSnackbarMessage('Помилка при створенні предмету');
             setSnackbarSeverity('error');
             setOpenSnackbar(true);
+        } 
+    };
+    
+    const handleCopyCode = () => {
+        if (createdSubject?.code) {
+            navigator.clipboard.writeText(createdSubject.code)
+                .then(() => {
+                    setSnackbarMessage('Код скопійовано в буфер обміну');
+                    setSnackbarSeverity('success');
+                    setOpenSnackbar(true);
+                })
+                .catch(err => {
+                    console.error('Could not copy text: ', err);
+                    setSnackbarMessage('Не вдалося скопіювати код');
+                    setSnackbarSeverity('error');
+                    setOpenSnackbar(true);
+                });
         }
+    };
+    
+    const handleCloseDialog = () => {
+        setOpenCodeDialog(false);
+        navigate(AppRoutes.SUBJECTS);
     };
 
     return (
-        <Container maxWidth="md">
+        <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
             <Box sx={{ mt: 4, mb: 4 }}>
-                <Typography component="h1" variant="h4" align="center" gutterBottom>
+                <Typography variant="h1" align="center" gutterBottom>
                     Створення нового предмету
                 </Typography>
                 
@@ -164,11 +201,6 @@ const CreateSubject: React.FC = () => {
                                                 image={cover.src}
                                                 alt={cover.alt}
                                             />
-                                            <CardContent>
-                                                <Typography variant="body2" align="center">
-                                                    {cover.alt}
-                                                </Typography>
-                                            </CardContent>
                                             {selectedCover === cover.id && <SelectedCoverIndicator />}
                                         </CardActionArea>
                                     </Card>
@@ -208,6 +240,58 @@ const CreateSubject: React.FC = () => {
                     {snackbarMessage}
                 </Alert>
             </Snackbar>
+            
+            <Dialog 
+                open={openCodeDialog} 
+                onClose={handleCloseDialog}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle>Предмет успішно створено!</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body1" gutterBottom>
+                        Ваш предмет "{createdSubject?.name}" було успішно створено. 
+                        Поділіться цим кодом з учнями, щоб вони могли приєднатися до предмету:
+                    </Typography>
+                    <Box 
+                        sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            my: 3,
+                            p: 2,
+                            bgcolor: 'primary.light',
+                            borderRadius: 1,
+                            color: 'white',
+                            position: 'relative'
+                        }}
+                    >
+                        <Typography variant="h4" component="div" sx={{ fontWeight: 'bold', letterSpacing: 1 }}>
+                            {createdSubject?.code}
+                        </Typography>
+                        <Tooltip title="Копіювати код">
+                            <IconButton 
+                                onClick={handleCopyCode} 
+                                sx={{ 
+                                    ml: 2,
+                                    color: 'white',
+                                    '&:hover': { bgcolor: 'primary.dark' }
+                                }}
+                            >
+                                <ContentCopyIcon />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                        Учні можуть використати цей код на сторінці "Приєднатися до предмету".
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleCloseDialog} color="primary">
+                        Зрозуміло
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Container>
     );
 };

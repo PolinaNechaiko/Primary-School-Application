@@ -1,6 +1,22 @@
 import { API } from '../index';
 
-export const getStudentsList = async () => {
+export interface Student {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email?: string;
+    grade?: string;
+    subjects?: string[];
+}
+
+export interface StudentCreateData {
+    firstName: string;
+    lastName: string;
+    email?: string;
+    grade?: string;
+}
+
+export const getStudentsList = async (): Promise<Student[]> => {
     try {
         const response = await API.get('/students');
         return response.data;
@@ -10,7 +26,7 @@ export const getStudentsList = async () => {
     }
 };
 
-export const addStudent = async (studentData: { name: string; email: string }) => {
+export const addStudent = async (studentData: StudentCreateData): Promise<Student> => {
     try {
         const response = await API.post('/students', studentData);
         return response.data;

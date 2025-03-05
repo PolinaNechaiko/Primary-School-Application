@@ -12,4 +12,7 @@ export const AppRoutes = {
     SCHEDULE:'/schedule',
     CREATE_SUBJECT :'/create-subject',
     JOIN_SUBJECT: '/join-subject',
+    WEEKLY_GAME: '/weekly-game',
+    STUDENT_GRADES: '/my-grades',
+    STUDENT_TASKS: '/my-tasks',
 }

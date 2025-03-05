@@ -15,6 +15,9 @@ import {API, configureInterceptorsForProject} from "./services";
 import CreateSubject from './pages/CreateSubject/CreateSubject.tsx';
 import JoinSubject from './components/JoinSubject/JoinSubject.tsx';
 import Students from './pages/Students/Students.tsx';
+import WeeklyGame from './pages/WeeklyGame';
+import StudentGrades from './pages/StudentGrades';
+import StudentTasks from './pages/StudentTasks';
 
 function App() {
     configureInterceptorsForProject(API);
@@ -32,6 +35,9 @@ function App() {
                     <Route path={`${AppRoutes.SUBJECTS}/:subjectId`} element={<SubjectDetails />} />
                     <Route index path={AppRoutes.SCHEDULE} element={<Schedule/>}/>
                     <Route index path={AppRoutes.STUDENTS} element={<Students/>}/>
+                    <Route index path={AppRoutes.WEEKLY_GAME} element={<WeeklyGame/>}/>
+                    <Route index path={AppRoutes.STUDENT_GRADES} element={<StudentGrades/>}/>
+                    <Route index path={AppRoutes.STUDENT_TASKS} element={<StudentTasks/>}/>
                     <Route path="*" element={<ComingSoon />} />
                 </Route>
             </Route>
