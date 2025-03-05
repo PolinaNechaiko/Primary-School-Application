@@ -17,8 +17,8 @@ import {AppRoutes} from "../utils/AppRoutes.ts";
 import React, { useRef } from "react";
 import Cookies from "js-cookie";
 import { useAuth } from "../hooks/useAuth";
-import CampaignIcon from '@mui/icons-material/Campaign';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import {CssBaseline, AppBar} from "@mui/material";
 
 const drawerWidth = 240;
 const PrivateLayout = () => {
@@ -26,6 +26,7 @@ const PrivateLayout = () => {
     const {pathname} = useLocation();
     const { user: currentUser } = useAuth();
     const isStudent = currentUser?.role === 'student';
+    const isTeacher = currentUser?.role === 'teacher';
     const audioRef = useRef<HTMLAudioElement>(null);
 
     const handleUserClick = (route: string) => {
@@ -53,205 +54,158 @@ const PrivateLayout = () => {
 
     const getActivePage = (link: string) => {
         switch (link) {
-            case '/':
-                return 'Unknown'
+            case AppRoutes.MAIN:
+                return 'Головна';
             case AppRoutes.JOURNAL:
-                return 'Журнал'
-            case AppRoutes.STUDENTS:
-                return 'Учні'
-            case AppRoutes.SCHEDULE:
-                return 'Розклад'
+                return 'Журнал';
+            case AppRoutes.INBOX:
+                return 'Вхідні';
             case AppRoutes.SUBJECTS:
-                return isStudent ? 'Мої предмети' : 'Предмети'
-            case AppRoutes.TASKS:
-                return 'Завдання'
+                return 'Предмети';
+            case AppRoutes.STUDENTS:
+                return 'Список учнів';
+            case AppRoutes.SCHEDULE:
+                return 'Розклад занять';
             case AppRoutes.WEEKLY_GAME:
-                return 'Гра тижня'
+                return 'Гра тижня';
             case AppRoutes.STUDENT_GRADES:
-                return 'Мої оцінки'
+                return 'Мої оцінки';
+            case AppRoutes.STUDENT_TASKS:
+                return 'Мої завдання';
             default:
-                if (link.startsWith('/subjects/')) {
-                    return 'Деталі предмету';
-                }
-                return 'Unknown';
+                return '';
         }
-    }
+    };
 
-    // Choose the appropriate navigation lists based on user role
+    // Determine which navigation lists to use based on user role
     const firstNavList = isStudent ? studentNavListFirst : navListFirst;
     const secondNavList = isStudent ? studentNavListSecond : navListSecond;
 
     return (
-        <Box sx={{display: 'flex', height: '100vh'}}>
-            <audio ref={audioRef} />
-            
+        <Box sx={{display: 'flex'}}>
+            <CssBaseline/>
+            <AppBar position="fixed" sx={{zIndex: (theme) => theme.zIndex.drawer + 1}}>
+                <Toolbar>
+                    <Box sx={{flexGrow: 1, display: 'flex', alignItems: 'center'}}>
+                        <img src={logo} alt="logo" style={{width: '40px', height: '40px', marginRight: '10px'}}/>
+                        <Typography variant="h6" noWrap component="div">
+                            Primary School
+                        </Typography>
+                    </Box>
+                    <Box sx={{display: 'flex', alignItems: 'center'}}>
+                        <Typography variant="body1" sx={{mr: 1}}>
+                            {currentUser?.firstName} {currentUser?.lastName}
+                        </Typography>
+                        <Box
+                            onClick={handleClick}
+                            sx={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '50%',
+                                overflow: 'hidden',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            <img src={user} alt="user" style={{width: '100%', height: '100%', objectFit: 'cover'}}/>
+                        </Box>
+                    </Box>
+                </Toolbar>
+            </AppBar>
             <Drawer
+                variant="permanent"
                 sx={{
                     width: drawerWidth,
                     flexShrink: 0,
-                    '& .MuiDrawer-paper': {
-                        width: drawerWidth,
-                        boxSizing: 'border-box',
-                    },
+                    [`& .MuiDrawer-paper`]: {width: drawerWidth, boxSizing: 'border-box'},
                 }}
-                variant="permanent"
-                anchor="left"
             >
-                <Toolbar sx={{display: 'flex', justifyContent: 'center'}}>
-                    <img style={{width: '32px', height: '32px'}} src={logo} alt='logo'/>
-                </Toolbar>
-                <Divider/>
-                <List>
-                    {firstNavList.map(({label, icon, route}, index) => (
-                        <ListItem 
-                            onClick={() => handleUserClick(route)} 
-                            key={index} 
-                            disablePadding
-                            secondaryAction={
-                                isStudent && (
-                                    <VolumeUpIcon 
-                                        color="primary" 
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            playAudio(`/audio/menu-${label.toLowerCase().replace(/\s+/g, '-')}.mp3`);
-                                        }}
-                                        sx={{ cursor: 'pointer' }}
-                                    />
-                                )
-                            }
-                        >
-                            <ListItemButton>
-                                <ListItemIcon>
-                                    <img style={{width: '21px', height: '21px'}} src={icon} alt='Icon'/>
-                                </ListItemIcon>
-                                <ListItemText primary={label}/>
+                <Toolbar/>
+                <Box sx={{overflow: 'auto'}}>
+                    <List>
+                        {firstNavList.map((item) => (
+                            <ListItem key={item.route} disablePadding>
+                                <ListItemButton
+                                    selected={pathname === item.route}
+                                    onClick={() => handleUserClick(item.route)}
+                                >
+                                    <ListItemIcon>
+                                        <img src={item.icon} alt={item.label}
+                                             style={{width: '24px', height: '24px'}}/>
+                                    </ListItemIcon>
+                                    <ListItemText primary={item.label}/>
+                                    {isStudent && (
+                                        <VolumeUpIcon 
+                                            color="primary" 
+                                            fontSize="small"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                playAudio(`/audio/nav-${item.label.toLowerCase().replace(/\s+/g, '-')}.mp3`);
+                                            }}
+                                            sx={{ ml: 1, cursor: 'pointer' }}
+                                        />
+                                    )}
+                                </ListItemButton>
+                            </ListItem>
+                        ))}
+                    </List>
+                    <Divider/>
+                    <List>
+                        {secondNavList.map((item) => (
+                            <ListItem key={item.route} disablePadding>
+                                <ListItemButton
+                                    selected={pathname === item.route}
+                                    onClick={() => handleUserClick(item.route)}
+                                >
+                                    <ListItemIcon>
+                                        <img src={item.icon} alt={item.label}
+                                             style={{width: '24px', height: '24px'}}/>
+                                    </ListItemIcon>
+                                    <ListItemText primary={item.label}/>
+                                    {isStudent && (
+                                        <VolumeUpIcon 
+                                            color="primary" 
+                                            fontSize="small"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                playAudio(`/audio/nav-${item.label.toLowerCase().replace(/\s+/g, '-')}.mp3`);
+                                            }}
+                                            sx={{ ml: 1, cursor: 'pointer' }}
+                                        />
+                                    )}
+                                </ListItemButton>
+                            </ListItem>
+                        ))}
+                    </List>
+                    <Divider/>
+                    <List>
+                        <ListItem disablePadding>
+                            <ListItemButton onClick={handleLogout}>
+                                <ListItemText primary="Вийти"/>
                             </ListItemButton>
                         </ListItem>
-                    ))}
-                </List>
-                <Divider/>
-                <List>
-                    {secondNavList.map(({label, icon, route}, index) => (
-                        <ListItem 
-                            onClick={() => handleUserClick(route)} 
-                            key={index} 
-                            disablePadding
-                            secondaryAction={
-                                isStudent && (
-                                    <VolumeUpIcon 
-                                        color="primary" 
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            playAudio(`/audio/menu-${label.toLowerCase().replace(/\s+/g, '-')}.mp3`);
-                                        }}
-                                        sx={{ cursor: 'pointer' }}
-                                    />
-                                )
-                            }
-                        >
-                            <ListItemButton>
-                                <ListItemIcon>
-                                    <img style={{width: '21px', height: '21px'}} src={icon} alt='Icon'/>
-                                </ListItemIcon>
-                                <ListItemText primary={label}/>
-                            </ListItemButton>
-                        </ListItem>
-                    ))}
-                </List>
+                    </List>
+                </Box>
             </Drawer>
-            <Stack sx={{width: '100%'}} direction='column' gap={2}>
-                <Box component='header' sx={{
-                    height: '65px',
-                    padding: '0 16px', borderBottom: '1px solid', borderColor: 'rgba(0, 0, 0, 0.12)'
+            <Box component="main" sx={{flexGrow: 1, p: 3}}>
+                <Toolbar/>
+                <audio ref={audioRef} />
+                <Outlet/>
+            </Box>
+            <BasePopup open={open} anchor={anchor} onOpenChange={handleClick}>
+                <Box sx={{
+                    bgcolor: 'background.paper',
+                    p: 2,
+                    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.1)',
+                    borderRadius: 1,
+                    minWidth: '150px'
                 }}>
-                    <Toolbar sx={{display: 'flex', justifyContent: 'space-between'}}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography fontWeight={400} variant='h1' component='span'>
-                                {getActivePage(pathname)}
-                            </Typography>
-                            {isStudent && (
-                                <VolumeUpIcon 
-                                    color="primary" 
-                                    onClick={() => playAudio(`/audio/page-${getActivePage(pathname).toLowerCase().replace(/\s+/g, '-')}.mp3`)}
-                                    sx={{ cursor: 'pointer' }}
-                                />
-                            )}
-                        </Box>
-
-                        <Button 
-                            aria-describedby={id} 
-                            type="button" 
-                            onClick={handleClick}
-                            sx={{ position: 'relative' }}
-                        >
-                            <img src={user} alt='icon'/>
-                            {isStudent && (
-                                <VolumeUpIcon 
-                                    color="primary" 
-                                    sx={{ 
-                                        position: 'absolute', 
-                                        top: -10, 
-                                        right: -10, 
-                                        cursor: 'pointer',
-                                        fontSize: '1.2rem',
-                                        backgroundColor: 'white',
-                                        borderRadius: '50%',
-                                        padding: '2px'
-                                    }}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        playAudio('/audio/logout.mp3');
-                                    }}
-                                />
-                            )}
-                        </Button>
-                        <BasePopup id={id} open={open} anchor={anchor}>
-                            <PopupBody>
-                                <span>Account settings </span>
-                                <span onClick={handleLogout}>Logout </span>
-                            </PopupBody>
-                        </BasePopup>
-                    </Toolbar>
+                    <Stack spacing={1}>
+                        <Button variant="text" onClick={handleLogout}>Вийти</Button>
+                    </Stack>
                 </Box>
-                <Box
-                    component="main"
-                    sx={{
-                        flexGrow: 1,
-                        bgcolor: 'background.default',
-                        p: 3,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center'
-                    }}
-                >
-                    <Outlet/>
-                </Box>
-            </Stack>
+            </BasePopup>
         </Box>
-    )
-}
-export {PrivateLayout}
+    );
+};
 
-const PopupBody = styled('div')(
-    ({theme}) => `
-  width: max-content;
-  padding: 12px 16px;
-  margin: 8px;
-  border-radius: 8px;
-  border: 1px solid fff;
-  background-color: fff;
-  box-shadow: ${
-        theme.palette.mode === 'dark'
-            ? `0px 4px 8px rgb(0 0 0 / 0.7)`
-            : `0px 4px 8px rgb(0 0 0 / 0.1)`
-    };
-  font-family: 'IBM Plex Sans', sans-serif;
-  font-weight: 500;
-  font-size: 0.875rem;
-  z-index: 1;
-  display:flex;
-  flex-direction: column;
-  gap:8px;
-  cursor:pointer;
-`,
-);
-
+export { PrivateLayout };

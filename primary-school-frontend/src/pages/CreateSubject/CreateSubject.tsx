@@ -87,12 +87,10 @@ const CreateSubject: React.FC = () => {
 
     const onSubmit = async (data: FormData) => {
         try {
-            
             if (!selectedCover) {
                 setSnackbarMessage('Будь ласка, виберіть обкладинку для предмету');
                 setSnackbarSeverity('error');
                 setOpenSnackbar(true);
-                setIsSubmitting(false);
                 return;
             }
             

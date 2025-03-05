@@ -53,7 +53,7 @@ const JoinSubject: React.FC = () => {
     const onSubmit = async (data: { subjectCode: string }) => {
         try {
             await API.post('/join-subject', { subjectCode: data.subjectCode });
-            navigate(AppRoutes.MAIN);
+            navigate(AppRoutes.SUBJECTS);
         } catch (error: any) {
             setError(error.response?.data?.message || 'Невірний код предмету');
         }

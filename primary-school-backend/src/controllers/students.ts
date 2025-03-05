@@ -20,10 +20,10 @@ export const getStudents = async (req: express.Request, res: express.Response) =
 
 export const addStudent = async (req: express.Request, res: express.Response) => {
     try {
-        const { name, email } = req.body;
+        const { firstName, lastName, email } = req.body;
 
-        if (!name || !email) {
-            return res.status(400).json({ message: "Name and email are required" });
+        if (!firstName || !lastName || !email) {
+            return res.status(400).json({ message: "First name, last name, and email are required" });
         }
 
         // Перевіряємо, чи існує користувач з таким email
@@ -39,9 +39,12 @@ export const addStudent = async (req: express.Request, res: express.Response) =>
         // Хешуємо пароль
         const hashedPassword = authentication(salt, temporaryPassword);
 
+        // Створюємо повне ім'я з імені та прізвища
+        const fullName = `${firstName} ${lastName}`;
+
         const student = await createUser({
             email,
-            username: name,
+            username: fullName,
             authentication: {
                 salt,
                 password: hashedPassword,
@@ -52,8 +55,9 @@ export const addStudent = async (req: express.Request, res: express.Response) =>
         // Видаляємо конфіденційні дані перед відправкою відповіді
         const studentResponse = {
             _id: student._id,
+            firstName,
+            lastName,
             email: student.email,
-            username: student.username,
             role: student.role,
             temporaryPassword // Додаємо тимчасовий пароль до відповіді
         };

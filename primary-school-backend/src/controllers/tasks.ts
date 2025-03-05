@@ -7,6 +7,7 @@ import mongoose from 'mongoose';
 export const createTask = async (req: express.Request, res: express.Response) => {
     try {
         const { name, description, content, subjectId } = req.body;
+        const userId = req.identity._id;
 
         if (!name || !description || !subjectId) {
             return res.status(400).json({ message: "Всі поля є обов'язковими" });
@@ -16,7 +17,8 @@ export const createTask = async (req: express.Request, res: express.Response) =>
             name,
             description,
             content,
-            subjectId
+            subject: subjectId,
+            createdBy: userId
         });
 
         await newTask.save();
@@ -40,11 +42,13 @@ export const getTasksBySubject = async (req: express.Request, res: express.Respo
             return res.status(400).json({ message: "ID предмета є обов'язковим" });
         }
 
-        const tasks = await TaskModel.find({ subjectId });
+        console.log('Getting tasks for subject with ID:', subjectId);
+        const tasks = await TaskModel.find({ subject: subjectId });
+        console.log('Found tasks:', tasks);
 
         return res.status(200).json(tasks);
     } catch (error) {
-        console.log(error);
+        console.log('Error getting tasks:', error);
         return res.status(400).json({ message: "Помилка при отриманні завдань" });
     }
 };

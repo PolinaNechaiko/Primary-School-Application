@@ -7,10 +7,11 @@ import {
     getSubject, 
     createSubject,
     getSubjectsByTeacher,
-    getSubjectById
+    getSubjectById,
+    getStudentSubjects
 } from "../controllers/subjects";
 
-export default (router: express.Router) => {
+const subjects = (router: express.Router) => {
     router.post('/subject', isAuthenticated, getSubject);
     router.get('/subjects', isAuthenticated, getAllSubjectsList);
     router.get('/tasks', isAuthenticated, getAllSubjectTask);
@@ -18,4 +19,7 @@ export default (router: express.Router) => {
     router.post('/create-subject', isAuthenticated, createSubject);
     router.get('/subjects/teacher/:teacherId', isAuthenticated, getSubjectsByTeacher);
     router.get('/subject/:subjectId', isAuthenticated, getSubjectById);
+    router.get('/subjects/student/:studentId', isAuthenticated, getStudentSubjects);
 };
+
+export default subjects;

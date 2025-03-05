@@ -32,47 +32,19 @@ export const getUsersByRole = async (role: string) => {
             .select('-authentication.password -authentication.salt -authentication.sessionToken')
             .populate({
                 path: 'subjects',
-                select: 'name teacher tasks grades',
-                populate: [
-                    {
-                        path: 'teacher',
-                        select: 'username email'
-                    },
-                    {
-                        path: 'tasks',
-                        select: 'title date'
-                    },
-                    {
-                        path: 'grades',
-                        select: 'value student task'
-                    }
-                ]
+                select: 'name description code time students',
+                options: { strictPopulate: false }
             });
         
-        // Форматуємо відповідь в залежності від ролі
+        // Спрощуємо відповідь для фронтенду
         return users.map(user => ({
             _id: user._id,
+            firstName: user.username?.split(' ')[0] || '',
+            lastName: user.username?.split(' ')[1] || '',
             email: user.email,
-            name: user.username,
             subjects: user.subjects?.map((subject: any) => ({
                 _id: subject._id,
-                name: subject.name,
-                teacher: {
-                    _id: subject.teacher?._id,
-                    name: subject.teacher?.username,
-                    email: subject.teacher?.email
-                },
-                tasks: subject.tasks?.map((task: any) => ({
-                    _id: task._id,
-                    title: task.title,
-                    date: task.date,
-                    grades: subject.grades?.filter((grade: any) => 
-                        grade.task.toString() === task._id.toString()
-                    ).map((grade: any) => ({
-                        value: grade.value,
-                        studentId: grade.student
-                    }))
-                }))
+                name: subject.name
             })),
             role: user.role,
             isJoinedToSubject: user.isJoinedToSubject

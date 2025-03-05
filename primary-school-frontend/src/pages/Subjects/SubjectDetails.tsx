@@ -30,14 +30,14 @@ import AddIcon from '@mui/icons-material/Add';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import AttachFileIcon from '@mui/icons-material/AttachFile';
 import SendIcon from '@mui/icons-material/Send';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useAuth } from '../../hooks/useAuth';
-import { getTasksBySubject, createTask } from '../../services/api/tasksApi';
+import { getTasksBySubject } from '../../services/api/tasksApi';
 import { getSubjectById } from '../../services/api/subjectsApi';
 import { API } from '../../services';
 import Confetti from 'react-confetti';
+import { TaskForm } from '../../components/Tasks/TaskForm';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -70,6 +70,11 @@ const SubjectDetails = () => {
     const { user } = useAuth();
     const isTeacher = user?.role === 'teacher';
     const isStudent = user?.role === 'student';
+    
+    console.log('User:', user);
+    console.log('Is teacher:', isTeacher);
+    console.log('Is student:', isStudent);
+    
     const audioRef = useRef<HTMLAudioElement>(null);
     
     const [subject, setSubject] = useState<any>(null);
@@ -77,16 +82,6 @@ const SubjectDetails = () => {
     const [loading, setLoading] = useState(true);
     const [openDialog, setOpenDialog] = useState(false);
     const [tabValue, setTabValue] = useState(0);
-    const [newTask, setNewTask] = useState({
-        name: '',
-        description: '',
-        content: {
-            video: '',
-            images: [''],
-            text: '',
-            learningApp: ''
-        }
-    });
     const [openSnackbar, setOpenSnackbar] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
@@ -100,28 +95,58 @@ const SubjectDetails = () => {
         const fetchData = async () => {
             try {
                 if (subjectId) {
-                    const subjectData = await getSubjectById(subjectId);
-                    setSubject(subjectData);
+                    console.log('Fetching subject with ID:', subjectId);
+                    try {
+                        const subjectData = await getSubjectById(subjectId);
+                        console.log('Subject data:', subjectData);
+                        setSubject(subjectData);
+                    } catch (error) {
+                        console.error('Error fetching subject:', error);
+                        setSnackbarMessage('Помилка при завантаженні предмету. Перевірте ID предмету та з\'єднання з сервером.');
+                        setSnackbarSeverity('error');
+                        setOpenSnackbar(true);
+                        setLoading(false);
+                        return;
+                    }
                     
-                    const tasksData = await getTasksBySubject(subjectId);
-                    setTasks(tasksData);
+                    try {
+                        console.log('Fetching tasks for subject with ID:', subjectId);
+                        const tasksData = await getTasksBySubject(subjectId);
+                        console.log('Tasks data:', tasksData);
+                        setTasks(tasksData);
 
-                    // Initialize expanded state for all tasks
-                    const initialExpandedState: Record<string, boolean> = {};
-                    tasksData.forEach((task: any) => {
-                        initialExpandedState[task._id] = false;
-                    });
-                    setExpandedTasks(initialExpandedState);
+                        // Initialize expanded state for all tasks
+                        const initialExpandedState: Record<string, boolean> = {};
+                        tasksData.forEach((task: any) => {
+                            initialExpandedState[task._id] = false;
+                        });
+                        setExpandedTasks(initialExpandedState);
+                    } catch (error) {
+                        console.error('Error fetching tasks:', error);
+                        setSnackbarMessage('Помилка при завантаженні завдань');
+                        setSnackbarSeverity('error');
+                        setOpenSnackbar(true);
+                    }
 
                     // Fetch completed tasks for student
                     if (isStudent) {
                         try {
+                            console.log('Fetching completed tasks for student with ID:', user?._id);
                             const response = await API.get(`/tasks/completed?studentId=${user?._id}&subjectId=${subjectId}`);
+                            console.log('Completed tasks:', response.data);
                             setCompletedTasks(response.data.map((task: any) => task.taskId));
                         } catch (error) {
                             console.error('Error fetching completed tasks:', error);
+                            setSnackbarMessage('Помилка при завантаженні виконаних завдань');
+                            setSnackbarSeverity('error');
+                            setOpenSnackbar(true);
                         }
                     }
+                } else {
+                    console.error('No subject ID provided');
+                    setSnackbarMessage('ID предмету не вказано');
+                    setSnackbarSeverity('error');
+                    setOpenSnackbar(true);
                 }
             } catch (error) {
                 console.error('Error fetching data:', error);
@@ -146,89 +171,6 @@ const SubjectDetails = () => {
 
     const handleCloseDialog = () => {
         setOpenDialog(false);
-        setNewTask({
-            name: '',
-            description: '',
-            content: {
-                video: '',
-                images: [''],
-                text: '',
-                learningApp: ''
-            }
-        });
-    };
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setNewTask({
-            ...newTask,
-            [name]: value
-        });
-    };
-
-    const handleContentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setNewTask({
-            ...newTask,
-            content: {
-                ...newTask.content,
-                [name]: value
-            }
-        });
-    };
-
-    const handleAddImage = () => {
-        setNewTask({
-            ...newTask,
-            content: {
-                ...newTask.content,
-                images: [...newTask.content.images, '']
-            }
-        });
-    };
-
-    const handleImageChange = (index: number, value: string) => {
-        const newImages = [...newTask.content.images];
-        newImages[index] = value;
-        setNewTask({
-            ...newTask,
-            content: {
-                ...newTask.content,
-                images: newImages
-            }
-        });
-    };
-
-    const handleSubmitTask = async () => {
-        try {
-            if (!subjectId) return;
-            
-            // Фільтруємо порожні URL зображень
-            const filteredImages = newTask.content.images.filter(img => img.trim() !== '');
-            
-            const taskData = {
-                ...newTask,
-                content: {
-                    ...newTask.content,
-                    images: filteredImages
-                },
-                subjectId
-            };
-            
-            const createdTask = await createTask(taskData);
-            setTasks([createdTask, ...tasks]);
-            
-            setSnackbarMessage('Завдання успішно створено!');
-            setSnackbarSeverity('success');
-            setOpenSnackbar(true);
-            
-            handleCloseDialog();
-        } catch (error) {
-            console.error('Error creating task:', error);
-            setSnackbarMessage('Помилка при створенні завдання');
-            setSnackbarSeverity('error');
-            setOpenSnackbar(true);
-        }
     };
 
     const playAudio = (audioSrc: string) => {
@@ -314,7 +256,7 @@ const SubjectDetails = () => {
             
             <Box sx={{ mb: 4 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h4" component="h1" gutterBottom>
+                    <Typography variant="h1" component="h1" gutterBottom>
                         {subject.name}
                     </Typography>
                     {isStudent && (
@@ -325,10 +267,7 @@ const SubjectDetails = () => {
                         />
                     )}
                 </Box>
-                
-                <Typography variant="body1" color="text.secondary" paragraph>
-                    {subject.description}
-                </Typography>
+            
                 
                 {isTeacher && (
                     <Button
@@ -398,7 +337,7 @@ const SubjectDetails = () => {
                                         </Typography>
                                         
                                         <Collapse in={expandedTasks[task._id]}>
-                                            {task.content.text && (
+                                            {task?.content?.text && (
                                                 <Box sx={{ mt: 2 }}>
                                                     <Typography variant="body1">
                                                         {task.content.text}
@@ -406,7 +345,7 @@ const SubjectDetails = () => {
                                                 </Box>
                                             )}
                                             
-                                            {task.content.video && (
+                                            {task?.content?.video && (
                                                 <Box sx={{ mt: 2 }}>
                                                     <iframe
                                                         width="100%"
@@ -420,10 +359,10 @@ const SubjectDetails = () => {
                                                 </Box>
                                             )}
                                             
-                                            {task.content.images && task.content.images.length > 0 && (
+                                            {task?.content?.images && task?.content?.images?.length > 0 && (
                                                 <Box sx={{ mt: 2 }}>
                                                     <Grid container spacing={2}>
-                                                        {task.content.images.map((image: string, index: number) => (
+                                                        {task?.content?.images?.map((image: string, index: number) => (
                                                             <Grid item xs={12} sm={6} md={4} key={index}>
                                                                 <img 
                                                                     src={image} 
@@ -436,7 +375,7 @@ const SubjectDetails = () => {
                                                 </Box>
                                             )}
                                             
-                                            {task.content.learningApp && (
+                                            {task?.content?.learningApp && (
                                                 <Box sx={{ mt: 2 }}>
                                                     <Typography variant="subtitle2" gutterBottom>
                                                         Інтерактивне завдання:
@@ -527,116 +466,20 @@ const SubjectDetails = () => {
             
             {/* Діалог для створення нового завдання */}
             <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-                <DialogTitle>Створення нового завдання</DialogTitle>
                 <DialogContent>
-                    <TextField
-                        autoFocus
-                        margin="dense"
-                        name="name"
-                        label="Назва завдання"
-                        type="text"
-                        fullWidth
-                        variant="outlined"
-                        value={newTask.name}
-                        onChange={handleInputChange}
-                        sx={{ mb: 2 }}
-                    />
-                    <TextField
-                        margin="dense"
-                        name="description"
-                        label="Опис завдання"
-                        type="text"
-                        fullWidth
-                        variant="outlined"
-                        multiline
-                        rows={3}
-                        value={newTask.description}
-                        onChange={handleInputChange}
-                        sx={{ mb: 2 }}
-                    />
-                    
-                    <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                        Контент завдання
-                    </Typography>
-                    
-                    <TextField
-                        margin="dense"
-                        name="text"
-                        label="Текст завдання"
-                        type="text"
-                        fullWidth
-                        variant="outlined"
-                        multiline
-                        rows={4}
-                        value={newTask.content.text}
-                        onChange={handleContentChange}
-                        sx={{ mb: 2 }}
-                    />
-                    
-                    <TextField
-                        margin="dense"
-                        name="video"
-                        label="Посилання на відео (YouTube embed URL)"
-                        type="text"
-                        fullWidth
-                        variant="outlined"
-                        value={newTask.content.video}
-                        onChange={handleContentChange}
-                        sx={{ mb: 2 }}
-                        helperText="Наприклад: https://www.youtube.com/embed/VIDEO_ID"
-                    />
-                    
-                    <Typography variant="subtitle1" gutterBottom>
-                        Зображення:
-                    </Typography>
-                    
-                    {newTask.content.images.map((image, index) => (
-                        <TextField
-                            key={index}
-                            margin="dense"
-                            label={`Посилання на зображення ${index + 1}`}
-                            type="text"
-                            fullWidth
-                            variant="outlined"
-                            value={image}
-                            onChange={(e) => handleImageChange(index, e.target.value)}
-                            sx={{ mb: 1 }}
+                    {subjectId && (
+                        <TaskForm 
+                            addTask={(task) => {
+                                setTasks([task, ...tasks]);
+                                handleCloseDialog();
+                                setSnackbarMessage('Завдання успішно створено!');
+                                setSnackbarSeverity('success');
+                                setOpenSnackbar(true);
+                            }} 
+                            taskId={subjectId} 
                         />
-                    ))}
-                    
-                    <Button 
-                        variant="outlined" 
-                        startIcon={<AddIcon />} 
-                        onClick={handleAddImage}
-                        sx={{ mt: 1, mb: 2 }}
-                    >
-                        Додати ще одне зображення
-                    </Button>
-                    
-                    <TextField
-                        margin="dense"
-                        name="learningApp"
-                        label="Посилання на LearningApps (embed URL)"
-                        type="text"
-                        fullWidth
-                        variant="outlined"
-                        value={newTask.content.learningApp}
-                        onChange={handleContentChange}
-                        sx={{ mb: 2, mt: 2 }}
-                        helperText="Наприклад: https://learningapps.org/watch?app=APP_ID"
-                    />
+                    )}
                 </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleCloseDialog}>Скасувати</Button>
-                    <Button 
-                        onClick={handleSubmitTask} 
-                        variant="contained" 
-                        color="primary"
-                        disabled={!newTask.name || !newTask.description}
-                    >
-                        Створити завдання
-                    </Button>
-                </DialogActions>
             </Dialog>
             
             <Snackbar 

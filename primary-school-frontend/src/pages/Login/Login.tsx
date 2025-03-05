@@ -25,7 +25,7 @@ const Login = () => {
         try {
             setLoading(true);
             const response = await loginUser(data);
-            
+            console.log(response);
             // Зберігаємо токен
             Cookies.set('sessionToken', response.authentication.sessionToken, { 
                 expires: 7, 

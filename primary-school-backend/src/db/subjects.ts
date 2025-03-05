@@ -12,6 +12,8 @@ const SubjectsSchema = new mongoose.Schema({
     code: { type: String, required: true, unique: true },
     time: { type: [String], required: true },
     tasks: { type: [TaskSchema], required: true, default: [] },
+    students: { type: [mongoose.Schema.Types.ObjectId], ref: 'User', default: [] },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 });
 
 export const generateUniqueCode = async () => {
@@ -43,3 +45,17 @@ export const getSubjectByName = (name: string) => SubjectsModel.findOne({name});
 export const getSubjectTaskById = (id: string) => SubjectsModel.findById(id).exec();
 
 export const getSubjectByCode = (code: string) => SubjectsModel.findOne({code});
+
+export const updateSubjectStudents = async (subjectId: mongoose.Types.ObjectId | string, studentId: mongoose.Types.ObjectId | string) => {
+    return SubjectsModel.findByIdAndUpdate(
+        subjectId,
+        { $addToSet: { students: studentId } },
+        { new: true }
+    );
+};
+
+export const getSubjectsByTeacher = (teacherId: string) => {
+    return SubjectsModel.find({ createdBy: teacherId })
+        .populate('students', 'username')
+        .sort({ createdAt: -1 });
+};

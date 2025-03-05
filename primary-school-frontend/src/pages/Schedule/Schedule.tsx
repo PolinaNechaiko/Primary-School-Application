@@ -24,14 +24,16 @@ import {
     FormControl,
     InputLabel,
     Select,
+    SelectChangeEvent,
     CircularProgress
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import { useAuth } from '../../hooks/useAuth';
-import { getSubjectsByTeacher } from '../../services/api/subjectsApi';
+import { getSubjects, getSubjectsByTeacher } from '../../services/api/subjectsApi';
 import { getSchedule, updateSchedule } from '../../services/api/scheduleApi';
+import { useNavigate } from 'react-router-dom';
 
 const daysOfWeek = [
     { id: 1, name: 'Понеділок' },
@@ -59,11 +61,19 @@ interface ScheduleItem {
     endTime: string;
 }
 
+interface Subject {
+    _id: string;
+    name: string;
+    description?: string;
+}
+
 const Schedule = () => {
-    const { user } = useAuth();
+    const { user, loading: userLoading } = useAuth();
     const isTeacher = user?.role === 'teacher';
+    const isStudent = user?.role === 'student';
+    console.log(user);
     
-    const [subjects, setSubjects] = useState<any[]>([]);
+    const [subjects, setSubjects] = useState<Subject[]>([]);
     const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [openDialog, setOpenDialog] = useState(false);
@@ -77,39 +87,66 @@ const Schedule = () => {
     const [openSnackbar, setOpenSnackbar] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+    const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
-        const fetchData = async () => {
+        if (!userLoading) {
+            fetchData();
+        }
+    }, [userLoading, user]);
+
+    const fetchData = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            
+            // Отримуємо предмети
+            let subjectsData: Subject[] = [];
+            
             try {
                 if (isTeacher && user?._id) {
-                    setLoading(true);
-                    
-                    // Отримуємо предмети вчителя
-                    const subjectsData = await getSubjectsByTeacher(user._id);
-                    setSubjects(subjectsData);
-                    
-                    // Отримуємо розклад
-                    try {
-                        const scheduleData = await getSchedule();
-                        if (scheduleData && scheduleData.items) {
-                            setScheduleItems(scheduleData.items);
-                        }
-                    } catch (error) {
-                        console.log('Розклад ще не створено');
-                    }
+                    // Для вчителя отримуємо його предмети
+                    subjectsData = await getSubjectsByTeacher(user._id);
+                } else {
+                    // Для студента отримуємо всі предмети
+                    subjectsData = await getSubjects();
+                }
+                
+                console.log('Subjects data:', subjectsData);
+                
+                // Не встановлюємо помилку, якщо немає предметів, просто логуємо це
+                if (!subjectsData || subjectsData.length === 0) {
+                    console.log('No subjects found');
+                }
+            } catch (subjectsError) {
+                console.error('Error fetching subjects:', subjectsError);
+                setError('Помилка при завантаженні предметів');
+            }
+            
+            setSubjects(subjectsData || []);
+            
+            // Отримуємо розклад
+            try {
+                const scheduleData = await getSchedule();
+                console.log('Schedule data:', scheduleData);
+                if (scheduleData && scheduleData.items) {
+                    setScheduleItems(scheduleData.items);
                 }
             } catch (error) {
-                console.error('Error fetching data:', error);
-                setSnackbarMessage('Помилка при завантаженні даних');
-                setSnackbarSeverity('error');
-                setOpenSnackbar(true);
-            } finally {
-                setLoading(false);
+                console.log('Розклад ще не створено або помилка при отриманні:', error);
+                // Не встановлюємо помилку, оскільки це може бути нормальною ситуацією
             }
-        };
-        
-        fetchData();
-    }, [isTeacher, user]);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            setError('Помилка при завантаженні даних');
+            setSnackbarMessage('Помилка при завантаженні даних');
+            setSnackbarSeverity('error');
+            setOpenSnackbar(true);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleOpenDialog = (item?: ScheduleItem) => {
         if (item) {
@@ -117,8 +154,12 @@ const Schedule = () => {
             setNewItem(item);
         } else {
             setEditingItem(null);
+            // Перевіряємо, чи є предмети перед встановленням значення за замовчуванням
+            const defaultSubject = subjects.length > 0 ? subjects[0]._id : '';
+            console.log('Default subject:', defaultSubject);
+            console.log('Available subjects:', subjects);
             setNewItem({
-                subject: subjects.length > 0 ? subjects[0]._id : '',
+                subject: defaultSubject,
                 dayOfWeek: 1,
                 startTime: '08:30',
                 endTime: '09:15'
@@ -132,7 +173,7 @@ const Schedule = () => {
         setEditingItem(null);
     };
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }> | SelectChangeEvent<string | number>) => {
         const { name, value } = e.target;
         setNewItem({
             ...newItem,
@@ -216,7 +257,7 @@ const Schedule = () => {
         return day ? day.name : 'Невідомий день';
     };
 
-    if (loading) {
+    if (userLoading || loading) {
         return (
             <Container>
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
@@ -226,12 +267,46 @@ const Schedule = () => {
         );
     }
 
-    if (!isTeacher) {
+    if (error) {
         return (
             <Container>
-                <Typography variant="h5" sx={{ mt: 4 }}>
-                    Доступ до редагування розкладу мають тільки вчителі
-                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 4 }}>
+                    <Alert severity="info" sx={{ mb: 3, width: '100%' }}>
+                        {error}
+                    </Alert>
+                    {isTeacher && (
+                        <Button 
+                            variant="contained" 
+                            color="primary"
+                            onClick={() => navigate('/subjects')}
+                        >
+                            Перейти до предметів
+                        </Button>
+                    )}
+                </Box>
+            </Container>
+        );
+    }
+
+    // Перевіряємо, чи є предмети для створення розкладу
+    if (isTeacher && subjects.length === 0) {
+        return (
+            <Container>
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 4 }}>
+                    <Typography variant="h4" component="h1" sx={{ mb: 3 }}>
+                        Тижневий розклад
+                    </Typography>
+                    <Alert severity="info" sx={{ mb: 3, width: '100%' }}>
+                        Спочатку створіть хоча б один предмет, щоб мати можливість скласти розклад
+                    </Alert>
+                    <Button 
+                        variant="contained" 
+                        color="primary"
+                        onClick={() => navigate('/subjects')}
+                    >
+                        Перейти до предметів
+                    </Button>
+                </Box>
             </Container>
         );
     }
@@ -242,158 +317,148 @@ const Schedule = () => {
                 <Typography variant="h4" component="h1">
                     Тижневий розклад
                 </Typography>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<AddIcon />}
-                    onClick={() => handleOpenDialog()}
-                >
-                    Додати урок
-                </Button>
+                {isTeacher && (
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        startIcon={<AddIcon />}
+                        onClick={() => handleOpenDialog()}
+                        disabled={subjects.length === 0}
+                    >
+                        Додати урок
+                    </Button>
+                )}
             </Box>
-            
-            <TableContainer component={Paper}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>День тижня</TableCell>
-                            <TableCell>Предмет</TableCell>
-                            <TableCell>Час</TableCell>
-                            <TableCell align="right">Дії</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {scheduleItems.length === 0 ? (
+
+            {scheduleItems.length === 0 ? (
+                <Paper sx={{ p: 3, textAlign: 'center' }}>
+                    <Typography variant="body1">
+                        {isTeacher 
+                            ? 'Натисніть кнопку "Додати урок", щоб створити розклад'
+                            : 'Розклад ще не створено. Зверніться до вчителя.'}
+                    </Typography>
+                </Paper>
+            ) : (
+                <TableContainer component={Paper}>
+                    <Table>
+                        <TableHead>
                             <TableRow>
-                                <TableCell colSpan={4} align="center">
-                                    <Typography variant="subtitle1" sx={{ py: 2 }}>
-                                        Розклад ще не створено. Додайте перший урок.
-                                    </Typography>
-                                </TableCell>
+                                <TableCell>День</TableCell>
+                                <TableCell>Час</TableCell>
+                                <TableCell>Предмет</TableCell>
+                                {isTeacher && <TableCell align="right">Дії</TableCell>}
                             </TableRow>
-                        ) : (
-                            scheduleItems
-                                .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime))
+                        </TableHead>
+                        <TableBody>
+                            {scheduleItems
+                                .sort((a, b) => {
+                                    // Сортуємо за днем тижня, а потім за часом початку
+                                    if (a.dayOfWeek !== b.dayOfWeek) {
+                                        return a.dayOfWeek - b.dayOfWeek;
+                                    }
+                                    return a.startTime.localeCompare(b.startTime);
+                                })
                                 .map((item) => (
                                     <TableRow key={item._id}>
                                         <TableCell>{getDayName(item.dayOfWeek)}</TableCell>
-                                        <TableCell>{getSubjectNameById(item.subject)}</TableCell>
                                         <TableCell>{`${item.startTime}-${item.endTime}`}</TableCell>
-                                        <TableCell align="right">
-                                            <IconButton 
-                                                color="primary" 
-                                                onClick={() => handleOpenDialog(item)}
-                                                size="small"
-                                            >
-                                                <EditIcon />
-                                            </IconButton>
-                                            <IconButton 
-                                                color="error" 
-                                                onClick={() => handleDeleteItem(item._id as string)}
-                                                size="small"
-                                            >
-                                                <DeleteIcon />
-                                            </IconButton>
-                                        </TableCell>
+                                        <TableCell>{getSubjectNameById(item.subject)}</TableCell>
+                                        {isTeacher && (
+                                            <TableCell align="right">
+                                                <IconButton 
+                                                    color="primary" 
+                                                    onClick={() => handleOpenDialog(item)}
+                                                    size="small"
+                                                >
+                                                    <EditIcon />
+                                                </IconButton>
+                                                <IconButton 
+                                                    color="error" 
+                                                    onClick={() => item._id && handleDeleteItem(item._id)}
+                                                    size="small"
+                                                >
+                                                    <DeleteIcon />
+                                                </IconButton>
+                                            </TableCell>
+                                        )}
                                     </TableRow>
-                                ))
-                        )}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-            
+                                ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            )}
+
             <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-                <DialogTitle>
-                    {editingItem ? 'Редагувати урок' : 'Додати новий урок'}
-                </DialogTitle>
+                <DialogTitle>{editingItem ? 'Редагувати урок' : 'Додати урок'}</DialogTitle>
                 <DialogContent>
-                    <Box sx={{ mt: 2 }}>
-                        <FormControl fullWidth sx={{ mb: 2 }}>
-                            <InputLabel id="subject-label">Предмет</InputLabel>
-                            <Select
-                                labelId="subject-label"
-                                name="subject"
-                                value={newItem.subject}
-                                onChange={handleInputChange}
-                                label="Предмет"
+                    {subjects.length === 0 ? (
+                        <Alert severity="info" sx={{ mt: 2 }}>
+                            Спочатку створіть хоча б один предмет, щоб мати можливість скласти розклад.
+                            <Button 
+                                color="primary" 
+                                size="small" 
+                                sx={{ mt: 1, display: 'block' }}
+                                onClick={() => {
+                                    handleCloseDialog();
+                                    navigate('/subjects');
+                                }}
                             >
-                                {subjects.map((subject) => (
-                                    <MenuItem key={subject._id} value={subject._id}>
-                                        {subject.name}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                        
-                        <FormControl fullWidth sx={{ mb: 2 }}>
-                            <InputLabel id="day-label">День тижня</InputLabel>
-                            <Select
-                                labelId="day-label"
-                                name="dayOfWeek"
-                                value={newItem.dayOfWeek}
-                                onChange={handleInputChange}
-                                label="День тижня"
-                            >
-                                {daysOfWeek.map((day) => (
-                                    <MenuItem key={day.id} value={day.id}>
-                                        {day.name}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                        
-                        <Typography variant="subtitle1" gutterBottom>
-                            Виберіть час уроку:
-                        </Typography>
-                        <Grid container spacing={1} sx={{ mb: 2 }}>
-                            {timeSlots.map((timeSlot) => (
-                                <Grid item key={timeSlot}>
-                                    <Button
-                                        variant={`${timeSlot.split('-')[0] === newItem.startTime && timeSlot.split('-')[1] === newItem.endTime ? 'contained' : 'outlined'}`}
-                                        onClick={() => handleTimeSlotSelect(timeSlot)}
-                                        size="small"
-                                    >
-                                        {timeSlot}
-                                    </Button>
-                                </Grid>
-                            ))}
-                        </Grid>
-                        
-                        <Grid container spacing={2}>
-                            <Grid item xs={6}>
-                                <TextField
-                                    name="startTime"
-                                    label="Початок"
-                                    type="time"
-                                    value={newItem.startTime}
-                                    onChange={handleInputChange}
-                                    fullWidth
-                                    InputLabelProps={{
-                                        shrink: true,
-                                    }}
-                                    inputProps={{
-                                        step: 300, // 5 хвилин
-                                    }}
-                                />
-                            </Grid>
-                            <Grid item xs={6}>
-                                <TextField
-                                    name="endTime"
-                                    label="Кінець"
-                                    type="time"
-                                    value={newItem.endTime}
-                                    onChange={handleInputChange}
-                                    fullWidth
-                                    InputLabelProps={{
-                                        shrink: true,
-                                    }}
-                                    inputProps={{
-                                        step: 300, // 5 хвилин
-                                    }}
-                                />
-                            </Grid>
-                        </Grid>
-                    </Box>
+                                Перейти до предметів
+                            </Button>
+                        </Alert>
+                    ) : (
+                        <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <FormControl fullWidth>
+                                <InputLabel id="subject-label">Предмет</InputLabel>
+                                <Select
+                                    labelId="subject-label"
+                                    name="subject"
+                                    value={newItem.subject}
+                                    onChange={handleInputChange as (event: SelectChangeEvent<string>, child: React.ReactNode) => void}
+                                    label="Предмет"
+                                >
+                                    {subjects.map((subject) => (
+                                        <MenuItem key={subject._id} value={subject._id}>
+                                            {subject.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+
+                            <FormControl fullWidth>
+                                <InputLabel id="day-label">День тижня</InputLabel>
+                                <Select
+                                    labelId="day-label"
+                                    name="dayOfWeek"
+                                    value={newItem.dayOfWeek}
+                                    onChange={handleInputChange as (event: SelectChangeEvent<number>, child: React.ReactNode) => void}
+                                    label="День тижня"
+                                >
+                                    {daysOfWeek.map((day) => (
+                                        <MenuItem key={day.id} value={day.id}>
+                                            {day.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+
+                            <FormControl fullWidth>
+                                <InputLabel id="time-label">Час</InputLabel>
+                                <Select
+                                    labelId="time-label"
+                                    value={`${newItem.startTime}-${newItem.endTime}`}
+                                    onChange={(e) => handleTimeSlotSelect(e.target.value as string)}
+                                    label="Час"
+                                >
+                                    {timeSlots.map((slot) => (
+                                        <MenuItem key={slot} value={slot}>
+                                            {slot}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Box>
+                    )}
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleCloseDialog}>Скасувати</Button>
@@ -401,15 +466,16 @@ const Schedule = () => {
                         onClick={handleSaveItem} 
                         variant="contained" 
                         color="primary"
+                        disabled={subjects.length === 0 || !newItem.subject || !newItem.dayOfWeek || !newItem.startTime || !newItem.endTime}
                     >
                         {editingItem ? 'Оновити' : 'Додати'}
                     </Button>
                 </DialogActions>
             </Dialog>
-            
-            <Snackbar 
-                open={openSnackbar} 
-                autoHideDuration={6000} 
+
+            <Snackbar
+                open={openSnackbar}
+                autoHideDuration={6000}
                 onClose={() => setOpenSnackbar(false)}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
             >

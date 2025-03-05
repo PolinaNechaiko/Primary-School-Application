@@ -15,13 +15,13 @@ import {
 } from '@mui/material';
 import {ITask, ITaskCreate} from "../../interfaces/Task.ts";
 import {FormTextField} from "../FormTextField/FormTextField.tsx";
-import {createNewTask} from "../../services/api/subjects.ts";
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ImageIcon from '@mui/icons-material/Image';
 import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
+import { createTask } from '../../services/api/tasksApi';
 
 interface TaskFormProps {
     addTask: (task: ITask) => void;
@@ -91,17 +91,36 @@ export const TaskForm: React.FC<TaskFormProps> = ({addTask, taskId}) => {
         }
         
         try {
-            const taskData: ITaskCreate = {
+            const taskData: any = {
                 name: title,
                 description,
                 subjectId: taskId,
+                content: {
+                    text: '',
+                    video: '',
+                    images: [] as string[],
+                    learningApp: ''
+                },
                 attachments: attachments.length > 0 ? attachments : undefined
             };
             
-            await createNewTask(taskData);
+            // Перетворюємо вкладення в контент
+            attachments.forEach(attachment => {
+                if (attachment.type === 'video') {
+                    taskData.content.video = attachment.url;
+                } else if (attachment.type === 'image') {
+                    taskData.content.images.push(attachment.url);
+                } else if (attachment.type === 'text') {
+                    taskData.content.text = attachment.url;
+                } else if (attachment.type === 'game') {
+                    taskData.content.learningApp = attachment.url;
+                }
+            });
+            
+            const createdTask = await createTask(taskData);
             
             const newTask: ITask = {
-                _id: Date.now(),
+                _id: createdTask.task._id,
                 name: title,
                 descriptions: description,
                 attachments: attachments.length > 0 ? attachments : undefined

@@ -21,29 +21,39 @@ import {
     CircularProgress
 } from '@mui/material';
 import { useAuth } from '../../hooks/useAuth';
-import { getStudentsList, addStudent } from '../../services/api/studentsApi';
+import { getStudentsList, addStudent, Student, StudentCreateData } from '../../services/api/studentsApi';
 
 const Students = () => {
-    const { user } = useAuth();
-    const [students, setStudents] = useState([]);
+    const { user, loading: userLoading } = useAuth();
+    const [students, setStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
     const [openDialog, setOpenDialog] = useState(false);
-    const [newStudent, setNewStudent] = useState({ name: '', email: '' });
+    const [newStudent, setNewStudent] = useState<StudentCreateData>({ 
+        firstName: '', 
+        lastName: '', 
+        email: '' 
+    });
     const [openSnackbar, setOpenSnackbar] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+    const [error, setError] = useState<string | null>(null);
 
+    // Завантажуємо список студентів незалежно від ролі користувача
     useEffect(() => {
-        fetchStudents();
-    }, []);
+        if (!userLoading) {
+            fetchStudents();
+        }
+    }, [userLoading]);
 
     const fetchStudents = async () => {
         try {
             setLoading(true);
+            setError(null);
             const data = await getStudentsList();
             setStudents(data);
         } catch (error) {
             console.error('Error fetching students:', error);
+            setError('Помилка при завантаженні списку учнів');
             setSnackbarMessage('Помилка при завантаженні списку учнів');
             setSnackbarSeverity('error');
             setOpenSnackbar(true);
@@ -56,7 +66,7 @@ const Students = () => {
         try {
             await addStudent(newStudent);
             setOpenDialog(false);
-            setNewStudent({ name: '', email: '' });
+            setNewStudent({ firstName: '', lastName: '', email: '' });
             await fetchStudents();
             setSnackbarMessage('Учня успішно додано');
             setSnackbarSeverity('success');
@@ -69,7 +79,7 @@ const Students = () => {
         }
     };
 
-    if (loading) {
+    if (userLoading || loading) {
         return (
             <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
                 <CircularProgress />
@@ -77,13 +87,27 @@ const Students = () => {
         );
     }
 
+    if (error) {
+        return (
+            <Container>
+                <Alert severity="error" sx={{ mt: 4 }}>
+                    {error}
+                </Alert>
+            </Container>
+        );
+    }
+
+    const isTeacher = user?.role === 'teacher';
+
     return (
         <Container maxWidth="lg">
             <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="h4">Список учнів</Typography>
-                <Button variant="contained" color="primary" onClick={() => setOpenDialog(true)}>
-                    Додати учня
-                </Button>
+                {isTeacher && (
+                    <Button variant="contained" color="primary" onClick={() => setOpenDialog(true)}>
+                        Додати учня
+                    </Button>
+                )}
             </Box>
 
             <TableContainer component={Paper}>
@@ -91,18 +115,16 @@ const Students = () => {
                     <TableHead>
                         <TableRow>
                             <TableCell>Ім'я</TableCell>
+                            <TableCell>Прізвище</TableCell>
                             <TableCell>Email</TableCell>
-                            <TableCell>Предмети</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {students.map((student: any) => (
+                        {students.map((student) => (
                             <TableRow key={student._id}>
-                                <TableCell>{student.name}</TableCell>
+                                <TableCell>{student.firstName}</TableCell>
+                                <TableCell>{student.lastName}</TableCell>
                                 <TableCell>{student.email}</TableCell>
-                                <TableCell>
-                                    {student.subjects?.map((subject: any) => subject.name).join(', ') || '-'}
-                                </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -116,15 +138,22 @@ const Students = () => {
                         <TextField
                             fullWidth
                             label="Ім'я"
-                            value={newStudent.name}
-                            onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
+                            value={newStudent.firstName}
+                            onChange={(e) => setNewStudent({ ...newStudent, firstName: e.target.value })}
+                            sx={{ mb: 2 }}
+                        />
+                        <TextField
+                            fullWidth
+                            label="Прізвище"
+                            value={newStudent.lastName}
+                            onChange={(e) => setNewStudent({ ...newStudent, lastName: e.target.value })}
                             sx={{ mb: 2 }}
                         />
                         <TextField
                             fullWidth
                             label="Email"
                             type="email"
-                            value={newStudent.email}
+                            value={newStudent.email || ''}
                             onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
                         />
                     </Box>

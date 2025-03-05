@@ -20,6 +20,7 @@ import {
 } from '@mui/material';
 import { useAuth } from '../../hooks/useAuth';
 import { getSubjects } from '../../services/api/subjectsApi';
+import { getStudentSubjects } from '../../services/api/subjectsApi';
 import { API } from '../../services';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -83,8 +84,8 @@ const StudentTasks = () => {
             setLoading(true);
             setError(null);
             
-            // Fetch subjects
-            const subjectsData = await getSubjects();
+            // Fetch subjects that the student has joined
+            const subjectsData = await getStudentSubjects(user?._id || '');
             setSubjects(subjectsData);
             
             // Initialize tasks state

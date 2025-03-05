@@ -6,7 +6,6 @@ import {AppRoutes} from "./utils/AppRoutes.ts";
 import Login from "./pages/Login/Login.tsx";
 import Registration from "./pages/Registration/Registration.tsx";
 import Journal from "./pages/Journal/Journal.tsx";
-import Tasks from "./pages/Tasks/Tasks.tsx";
 import ComingSoon from "./pages/ComingSoon/ComingSoon.tsx";
 import Subjects from "./pages/Classes/Classes.tsx";
 import SubjectDetails from "./pages/Subjects/SubjectDetails.tsx";
@@ -28,16 +27,21 @@ function App() {
                 <Route path={AppRoutes.JOIN_SUBJECT} element={<JoinSubject />} />
 
                 <Route path="/" element={<PrivateLayout/>}>
+                    {/* Common routes for both teachers and students */}
                     <Route index path={AppRoutes.MAIN} element={<div>основна</div>}/>
-                    <Route index path={AppRoutes.JOURNAL} element={<Journal/>}/>
-                    <Route index path={AppRoutes.TASKS} element={<Tasks/>}/>
                     <Route index path={AppRoutes.SUBJECTS} element={<Subjects/>}/>
                     <Route path={`${AppRoutes.SUBJECTS}/:subjectId`} element={<SubjectDetails />} />
                     <Route index path={AppRoutes.SCHEDULE} element={<Schedule/>}/>
-                    <Route index path={AppRoutes.STUDENTS} element={<Students/>}/>
                     <Route index path={AppRoutes.WEEKLY_GAME} element={<WeeklyGame/>}/>
+                    
+                    {/* Teacher-specific routes */}
+                    <Route index path={AppRoutes.JOURNAL} element={<Journal/>}/>
+                    <Route index path={AppRoutes.STUDENTS} element={<Students/>}/>
+                    
+                    {/* Student-specific routes */}
                     <Route index path={AppRoutes.STUDENT_GRADES} element={<StudentGrades/>}/>
                     <Route index path={AppRoutes.STUDENT_TASKS} element={<StudentTasks/>}/>
+                    
                     <Route path="*" element={<ComingSoon />} />
                 </Route>
             </Route>

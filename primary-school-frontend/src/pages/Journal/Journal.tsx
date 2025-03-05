@@ -43,14 +43,22 @@ interface Subject {
     coverImage: string;
     code: string;
     time: string[];
-    tasks: Task[];
     __v: number;
 }
 
 interface Task {
     _id: string;
     name: string;
-    descriptions: string;
+    description: string;
+    subject: string;
+    createdBy: string;
+    createdAt: string;
+    content?: {
+        text?: string;
+        video?: string;
+        images?: string[];
+        learningApp?: string;
+    };
 }
 
 interface Student {
@@ -74,6 +82,7 @@ const Journal = () => {
     const [students, setStudents] = useState<Student[]>([]);
     const [grades, setGrades] = useState<Record<string, Record<string, string>>>({});
     const [loading, setLoading] = useState(true);
+    const [tasksLoading, setTasksLoading] = useState(false);
     const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
     const [currentStudent, setCurrentStudent] = useState<string | null>(null);
     const [currentTask, setCurrentTask] = useState<string | null>(null);
@@ -91,10 +100,10 @@ const Journal = () => {
     ]);
 
     useEffect(() => {
-        if (user && !userLoading) {
+        if (user && !userLoading && isTeacher) {
             fetchData();
         }
-    }, [user, userLoading]);
+    }, [user, userLoading, isTeacher]);
 
     const fetchData = async () => {
         try {
@@ -169,17 +178,29 @@ const Journal = () => {
         }
     };
 
+    const fetchTasksForSubject = async (subjectId: string) => {
+        try {
+            setTasksLoading(true);
+            console.log('Fetching tasks for subject:', subjectId);
+            const tasksData = await getTasksBySubject(subjectId);
+            console.log('Tasks data:', tasksData);
+            setTasks(tasksData);
+        } catch (error) {
+            console.error('Error fetching tasks:', error);
+            setError('Помилка при завантаженні завдань');
+            setTasks([]);
+        } finally {
+            setTasksLoading(false);
+        }
+    };
+
     const handleSubjectChange = async (subjectId: string) => {
         try {
             setLoading(true);
             setSelectedSubject(subjectId);
 
-            const selectedSubjectData = subjects.find(s => s._id === subjectId);
-            if (selectedSubjectData && selectedSubjectData.tasks) {
-                setTasks(selectedSubjectData.tasks);
-            } else {
-                setTasks([]);
-            }
+            // Fetch tasks for the selected subject
+            await fetchTasksForSubject(subjectId);
 
             try {
                 const gradesData = await getGradesForJournal(subjectId);
@@ -334,7 +355,7 @@ const Journal = () => {
                 </FormControl>
             </Box>
             
-            {loading ? (
+            {loading || tasksLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
                     <CircularProgress />
                 </Box>
@@ -358,7 +379,7 @@ const Journal = () => {
                                 <TableCell sx={{ fontWeight: 'bold', width: '200px' }}>Учень</TableCell>
                                 {tasks.map((task) => (
                                     <TableCell key={task._id} align="center" sx={{ fontWeight: 'bold' }}>
-                                        <Tooltip title={task.descriptions || ''} arrow>
+                                        <Tooltip title={task.description || ''} arrow>
                                             <Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
                                                 {task.name}
                                             </Typography>
@@ -369,32 +390,20 @@ const Journal = () => {
                         </TableHead>
                         <TableBody>
                             {students.map((student) => (
-                                <TableRow key={student._id} hover>
-                                    <TableCell component="th" scope="row">
+                                <TableRow key={student._id}>
+                                    <TableCell>
                                         {student.firstName} {student.lastName}
                                     </TableCell>
-                                    {tasks.map((task) => {
-                                        const grade = grades[student._id]?.[task._id];
-                                        return (
-                                            <TableCell key={`${student._id}-${task._id}`} align="center">
-                                                <Button
-                                                    onClick={(e) => handleGradeClick(e, student._id, task._id)}
-                                                    variant="outlined"
-                                                    color={grade ? 'primary' : 'inherit'}
-                                                    size="small"
-                                                    sx={{ minWidth: 40, minHeight: 40 }}
-                                                >
-                                                    {grade ? (
-                                                        <Tooltip title={getGradeText(grade)} arrow>
-                                                            {getGradeIcon(grade)}
-                                                        </Tooltip>
-                                                    ) : (
-                                                        '+'
-                                                    )}
-                                                </Button>
-                                            </TableCell>
-                                        );
-                                    })}
+                                    {tasks.map((task) => (
+                                        <TableCell key={task._id} align="center">
+                                            <Button
+                                                onClick={(e) => handleGradeClick(e, student._id, task._id)}
+                                                sx={{ minWidth: 'auto', p: 1 }}
+                                            >
+                                                {getGradeIcon(grades[student._id]?.[task._id] || '')}
+                                            </Button>
+                                        </TableCell>
+                                    ))}
                                 </TableRow>
                             ))}
                         </TableBody>

@@ -4,8 +4,8 @@ import inboxIcon from '../../assets/inbox.png'
 import searchIcon from '../../assets/search.png'
 import schedule from '../../assets/calendar.png'
 import gameIcon from '../../assets/game.png'
-import gradesIcon from '../../assets/grades.png'
 import tasksIcon from '../../assets/tasks.png'
+import gradesIcon from '../../assets/grades.png'
 
 import {AppRoutes} from "../AppRoutes.ts";
 

@@ -95,8 +95,14 @@ export const getStudentGrades = async (req: express.Request, res: express.Respon
         const { studentId } = req.params;
         
         const grades = await GradeModel.find({ student: studentId })
-            .populate('task', 'name')
-            .populate('subject', 'name')
+            .populate({
+                path: 'task',
+                select: 'name description'
+            })
+            .populate({
+                path: 'subject',
+                select: 'name description'
+            })
             .sort({ createdAt: -1 });
         
         return res.status(200).json(grades);
