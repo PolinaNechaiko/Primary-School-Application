@@ -4,7 +4,8 @@ import {
     getSubjectByName,
     getSubjectTaskById,
     SubjectsModel,
-    generateUniqueCode
+    generateUniqueCode,
+    getSubjectByNameAndTeacher
 } from "../db/subjects";
 import mongoose from "mongoose";
 
@@ -86,10 +87,10 @@ export const createSubject = async (req: express.Request, res: express.Response)
             return res.status(400).json({ message: "Усі поля є обов'язковими" });
         }
 
-        // Перевіряємо чи існує предмет з таким ім'ям
-        const existingSubjectByName = await getSubjectByName(name);
-        if (existingSubjectByName) {
-            return res.status(400).json({ message: "Предмет з такою назвою вже існує" });
+        // Перевіряємо чи існує предмет з таким ім'ям у цього викладача
+        const existingSubjectByNameAndTeacher = await getSubjectByNameAndTeacher(name, userId);
+        if (existingSubjectByNameAndTeacher) {
+            return res.status(400).json({ message: "Предмет з такою назвою вже існує у вашому списку" });
         }
 
         // Генеруємо унікальний код

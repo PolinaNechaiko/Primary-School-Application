@@ -6,7 +6,7 @@ const TaskSchema = new mongoose.Schema({
 });
 
 const SubjectsSchema = new mongoose.Schema({
-    name: { type: String, required: true, unique: true },
+    name: { type: String, required: true },
     description: { type: String, required: true },
     coverImage: { type: String, required: true },
     code: { type: String, required: true, unique: true },
@@ -45,6 +45,9 @@ export const getSubjectByName = (name: string) => SubjectsModel.findOne({name});
 export const getSubjectTaskById = (id: string) => SubjectsModel.findById(id).exec();
 
 export const getSubjectByCode = (code: string) => SubjectsModel.findOne({code});
+
+export const getSubjectByNameAndTeacher = (name: string, teacherId: string) => 
+    SubjectsModel.findOne({ name, createdBy: teacherId });
 
 export const updateSubjectStudents = async (subjectId: mongoose.Types.ObjectId | string, studentId: mongoose.Types.ObjectId | string) => {
     return SubjectsModel.findByIdAndUpdate(
