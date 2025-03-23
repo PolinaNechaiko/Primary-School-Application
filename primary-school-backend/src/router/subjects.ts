@@ -1,5 +1,5 @@
 import express from "express";
-import {isAuthenticated} from "../middlewares";
+import {isAuthenticated, isTeacher} from "../middlewares";
 import {
     createNewTask, 
     getAllSubjectsList, 
@@ -8,7 +8,8 @@ import {
     createSubject,
     getSubjectsByTeacher,
     getSubjectById,
-    getStudentSubjects
+    getStudentSubjects,
+    addStudentsToSubject
 } from "../controllers/subjects";
 
 const subjects = (router: express.Router) => {
@@ -20,6 +21,7 @@ const subjects = (router: express.Router) => {
     router.get('/subjects/teacher/:teacherId', isAuthenticated, getSubjectsByTeacher);
     router.get('/subject/:subjectId', isAuthenticated, getSubjectById);
     router.get('/subjects/student/:studentId', isAuthenticated, getStudentSubjects);
+    router.post('/subject/:subjectId/add-students', isAuthenticated, isTeacher, addStudentsToSubject);
 };
 
 export default subjects;
