@@ -247,10 +247,7 @@ const Schedule = () => {
         }
     };
 
-    const getSubjectNameById = (subjectId: string) => {
-        const subject = subjects.find(s => s._id === subjectId);
-        return subject ? subject.name : 'Невідомий предмет';
-    };
+  
 
     const getDayName = (dayId: number) => {
         const day = daysOfWeek.find(d => d.id === dayId);
@@ -362,7 +359,7 @@ const Schedule = () => {
                                     <TableRow key={item._id}>
                                         <TableCell>{getDayName(item.dayOfWeek)}</TableCell>
                                         <TableCell>{`${item.startTime}-${item.endTime}`}</TableCell>
-                                        <TableCell>{getSubjectNameById(item.subject)}</TableCell>
+                                        <TableCell>{item.subject.name}</TableCell>
                                         {isTeacher && (
                                             <TableCell align="right">
                                                 <IconButton 

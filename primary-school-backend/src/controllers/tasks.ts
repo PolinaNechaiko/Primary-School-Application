@@ -6,29 +6,40 @@ import mongoose from 'mongoose';
 // Створення нового завдання
 export const createTask = async (req: express.Request, res: express.Response) => {
     try {
-        const { name, description, content, subjectId } = req.body;
+        const { name, description, subjectId, attachments } = req.body;
         const userId = req.identity._id;
+
+        console.log('Received task data:', { name, description, subjectId, attachments: attachments?.length || 0 });
 
         if (!name || !description || !subjectId) {
             return res.status(400).json({ message: "Всі поля є обов'язковими" });
         }
 
-        const newTask = new TaskModel({
+        // Створюємо об'єкт для нового завдання
+        const taskData: any = {
             name,
             description,
-            content,
             subject: subjectId,
-            createdBy: userId
-        });
+            createdBy: userId,
+        };
 
+        // Додаємо вкладення, якщо вони є
+        if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+            console.log('Adding attachments to task:', attachments.length);
+            taskData.attachments = attachments;
+        }
+
+        const newTask = new TaskModel(taskData);
         await newTask.save();
 
+        console.log('Created new task with ID:', newTask._id);
+        
         return res.status(201).json({
             message: "Завдання успішно створено",
             task: newTask
         });
     } catch (error) {
-        console.log(error);
+        console.error('Error creating task:', error);
         return res.status(400).json({ message: "Помилка при створенні завдання" });
     }
 };

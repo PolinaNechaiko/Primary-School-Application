@@ -11,7 +11,12 @@ import {
     Paper, 
     Divider,
     Snackbar,
-    Alert
+    Alert,
+    List,
+    ListItem,
+    ListItemText,
+    ListItemIcon,
+    ListItemSecondaryAction
 } from '@mui/material';
 import {ITask, ITaskCreate} from "../../interfaces/Task.ts";
 import {FormTextField} from "../FormTextField/FormTextField.tsx";
@@ -44,7 +49,8 @@ export const TaskForm: React.FC<TaskFormProps> = ({addTask, taskId}) => {
     const [attachmentTitle, setAttachmentTitle] = useState('');
     const [openSnackbar, setOpenSnackbar] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
-    const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+    const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'warning' | 'info'>('success');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
         setCurrentTab(newValue);
@@ -91,45 +97,37 @@ export const TaskForm: React.FC<TaskFormProps> = ({addTask, taskId}) => {
         }
         
         try {
-            const taskData: any = {
+            setIsSubmitting(true);
+            console.log('Submitting task with attachments:', attachments);
+            
+            // Створюємо об'єкт з даними завдання
+            const taskData = {
                 name: title,
                 description,
                 subjectId: taskId,
-                content: {
-                    text: '',
-                    video: '',
-                    images: [] as string[],
-                    learningApp: ''
-                },
-                attachments: attachments.length > 0 ? attachments : undefined
+                attachments: attachments.length > 0 ? attachments : []
             };
             
-            // Перетворюємо вкладення в контент
-            attachments.forEach(attachment => {
-                if (attachment.type === 'video') {
-                    taskData.content.video = attachment.url;
-                } else if (attachment.type === 'image') {
-                    taskData.content.images.push(attachment.url);
-                } else if (attachment.type === 'text') {
-                    taskData.content.text = attachment.url;
-                } else if (attachment.type === 'game') {
-                    taskData.content.learningApp = attachment.url;
-                }
-            });
-            
+            console.log('Sending task data:', taskData);
             const createdTask = await createTask(taskData);
+            console.log('Task created successfully:', createdTask);
             
+            // Повідомляємо батьківський компонент про створення завдання
             const newTask: ITask = {
                 _id: createdTask.task._id,
                 name: title,
                 descriptions: description,
-                attachments: attachments.length > 0 ? attachments : undefined
+                attachments: attachments
             };
             
             addTask(newTask);
+            
+            // Очищаємо форму
             setTitle('');
             setDescription('');
             setAttachments([]);
+            
+            // Показуємо повідомлення про успіх
             setSnackbarMessage('Завдання успішно створено');
             setSnackbarSeverity('success');
             setOpenSnackbar(true);
@@ -138,6 +136,8 @@ export const TaskForm: React.FC<TaskFormProps> = ({addTask, taskId}) => {
             setSnackbarMessage('Помилка при створенні завдання');
             setSnackbarSeverity('error');
             setOpenSnackbar(true);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -196,49 +196,66 @@ export const TaskForm: React.FC<TaskFormProps> = ({addTask, taskId}) => {
             
             {currentTab === 1 && (
                 <Box>
-                    <Paper sx={{ p: 2, mb: 3 }}>
+                    <Paper sx={{ p: 3, mb: 3 }}>
                         <Typography variant="subtitle1" gutterBottom>
                             Додати нове вкладення
                         </Typography>
                         
-                        <Grid container spacing={2} alignItems="center">
-                            <Grid item xs={12} sm={3}>
+                        <Grid container spacing={2}>
+                            {/* Тип вкладення */}
+                            <Grid item xs={12}>
+                                <Typography variant="body2" color="text.secondary" gutterBottom>
+                                    Тип вкладення:
+                                </Typography>
                                 <Box sx={{ display: 'flex', gap: 1 }}>
-                                    <IconButton 
-                                        color={attachmentType === 'image' ? 'primary' : 'default'} 
+                                    <Button 
+                                        variant={attachmentType === 'image' ? 'contained' : 'outlined'} 
                                         onClick={() => handleAttachmentTypeChange('image')}
+                                        startIcon={<ImageIcon />}
+                                        size="small"
                                     >
-                                        <ImageIcon />
-                                    </IconButton>
-                                    <IconButton 
-                                        color={attachmentType === 'video' ? 'primary' : 'default'} 
+                                        Зображення
+                                    </Button>
+                                    <Button 
+                                        variant={attachmentType === 'video' ? 'contained' : 'outlined'} 
                                         onClick={() => handleAttachmentTypeChange('video')}
+                                        startIcon={<VideoLibraryIcon />}
+                                        size="small"
                                     >
-                                        <VideoLibraryIcon />
-                                    </IconButton>
-                                    <IconButton 
-                                        color={attachmentType === 'text' ? 'primary' : 'default'} 
+                                        Відео
+                                    </Button>
+                                    <Button 
+                                        variant={attachmentType === 'text' ? 'contained' : 'outlined'} 
                                         onClick={() => handleAttachmentTypeChange('text')}
+                                        startIcon={<TextSnippetIcon />}
+                                        size="small"
                                     >
-                                        <TextSnippetIcon />
-                                    </IconButton>
-                                    <IconButton 
-                                        color={attachmentType === 'game' ? 'primary' : 'default'} 
+                                        Текст
+                                    </Button>
+                                    <Button 
+                                        variant={attachmentType === 'game' ? 'contained' : 'outlined'} 
                                         onClick={() => handleAttachmentTypeChange('game')}
+                                        startIcon={<SportsEsportsIcon />}
+                                        size="small"
                                     >
-                                        <SportsEsportsIcon />
-                                    </IconButton>
+                                        Міні-гра
+                                    </Button>
                                 </Box>
                             </Grid>
-                            <Grid item xs={12} sm={3}>
+                            
+                            {/* Назва вкладення */}
+                            <Grid item xs={12}>
                                 <TextField
-                                    label="Назва (необов'язково)"
+                                    label="Назва вкладення (необов'язково)"
                                     fullWidth
                                     value={attachmentTitle}
                                     onChange={(e) => setAttachmentTitle(e.target.value)}
+                                    margin="normal"
                                 />
                             </Grid>
-                            <Grid item xs={12} sm={4}>
+                            
+                            {/* URL вкладення */}
+                            <Grid item xs={12}>
                                 <TextField
                                     label="URL вкладення"
                                     fullWidth
@@ -249,47 +266,62 @@ export const TaskForm: React.FC<TaskFormProps> = ({addTask, taskId}) => {
                                             ? 'https://learningapps.org/...' 
                                             : `URL ${attachmentType === 'image' ? 'зображення' : attachmentType === 'video' ? 'відео' : 'тексту'}`
                                     }
+                                    margin="normal"
+                                    helperText={
+                                        attachmentType === 'game' 
+                                            ? 'Для додавання міні-гри використовуйте посилання з сайту LearningApps.org' 
+                                            : ''
+                                    }
                                 />
                             </Grid>
-                            <Grid item xs={12} sm={2}>
+                            
+                            {/* Кнопка додавання */}
+                            <Grid item xs={12}>
                                 <Button 
                                     variant="contained" 
                                     startIcon={<AddIcon />}
                                     onClick={handleAddAttachment}
-                                    fullWidth
                                 >
-                                    Додати
+                                    Додати вкладення
                                 </Button>
                             </Grid>
                         </Grid>
-                        
-                        {attachmentType === 'game' && (
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                                Для додавання міні-гри використовуйте посилання з сайту LearningApps.org
-                            </Typography>
-                        )}
                     </Paper>
                     
+                    {/* Список вкладень */}
                     {attachments.length > 0 && (
-                        <Box>
+                        <Paper sx={{ p: 3 }}>
                             <Typography variant="subtitle1" gutterBottom>
                                 Додані вкладення:
                             </Typography>
                             
-                            {attachments.map((attachment, index) => (
-                                <Paper key={index} sx={{ p: 2, mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                        {getAttachmentTypeIcon(attachment.type)}
-                                        <Typography sx={{ ml: 2 }}>
-                                            {attachment.title || `${attachment.type === 'image' ? 'Зображення' : attachment.type === 'video' ? 'Відео' : attachment.type === 'text' ? 'Текст' : 'Міні-гра'} ${index + 1}`}
-                                        </Typography>
-                                    </Box>
-                                    <IconButton onClick={() => handleRemoveAttachment(index)} color="error">
-                                        <DeleteIcon />
-                                    </IconButton>
-                                </Paper>
-                            ))}
-                        </Box>
+                            <List>
+                                {attachments.map((attachment, index) => (
+                                    <ListItem 
+                                        key={index}
+                                        divider={index !== attachments.length - 1}
+                                    >
+                                        <ListItemIcon>
+                                            {getAttachmentTypeIcon(attachment.type)}
+                                        </ListItemIcon>
+                                        <ListItemText 
+                                            primary={attachment.title || `${attachment.type === 'image' ? 'Зображення' : attachment.type === 'video' ? 'Відео' : attachment.type === 'text' ? 'Текст' : 'Міні-гра'} ${index + 1}`}
+                                            secondary={attachment.url}
+                                        />
+                                        <ListItemSecondaryAction>
+                                            <IconButton 
+                                                edge="end" 
+                                                aria-label="delete" 
+                                                onClick={() => handleRemoveAttachment(index)}
+                                                color="error"
+                                            >
+                                                <DeleteIcon />
+                                            </IconButton>
+                                        </ListItemSecondaryAction>
+                                    </ListItem>
+                                ))}
+                            </List>
+                        </Paper>
                     )}
                 </Box>
             )}
@@ -301,8 +333,9 @@ export const TaskForm: React.FC<TaskFormProps> = ({addTask, taskId}) => {
                     sx={{ height: '40px', width: '250px' }} 
                     variant='contained' 
                     onClick={handleSubmit}
+                    disabled={isSubmitting}
                 >
-                    Створити завдання
+                    {isSubmitting ? 'Створення...' : 'Створити завдання'}
                 </Button>
             </Box>
             

@@ -2,7 +2,7 @@ export interface ITask {
     _id: number;
     name: string;
     descriptions: string;
-    attachments?: {
+    attachments: {
         type: 'video' | 'image' | 'text' | 'game';
         url: string;
         title?: string;
@@ -14,7 +14,7 @@ export interface ITaskCreate {
     name: string;
     description: string;
     subjectId: string;
-    attachments?: {
+    attachments: {
         type: 'video' | 'image' | 'text' | 'game';
         url: string;
         title?: string;

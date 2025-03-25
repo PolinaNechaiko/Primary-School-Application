@@ -25,7 +25,8 @@ import {
     Divider,
     IconButton,
     Collapse,
-    Checkbox
+    Checkbox,
+    Link
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
@@ -79,7 +80,6 @@ const SubjectDetails = () => {
     console.log('Is student:', isStudent);
     
     const audioRef = useRef<HTMLAudioElement>(null);
-    
     const [subject, setSubject] = useState<any>(null);
     const [tasks, setTasks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -328,7 +328,8 @@ const SubjectDetails = () => {
     if (!subject) {
         return <Container><Typography>Предмет не знайдено</Typography></Container>;
     }
-
+    console.log(tasks);
+    
     return (
         <Container>
             <audio ref={audioRef} />
@@ -417,20 +418,28 @@ const SubjectDetails = () => {
                                         </Typography>
                                         
                                         <Collapse in={expandedTasks[task._id]}>
-                                            {task?.content?.text && (
+                                            {/* Текстове вкладення */}
+                                            {task?.attachments?.find((a: { type: string }) => a.type === 'text') && (
                                                 <Box sx={{ mt: 2 }}>
                                                     <Typography variant="body1">
-                                                        {task.content.text}
+                                                        <Link 
+                                                            href={task.attachments.find((a: { type: string; url: string }) => a.type === 'text')?.url || ''} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer"
+                                                        >
+                                                            {task.attachments.find((a: { type: string; title?: string }) => a.type === 'text')?.title || 'Відкрити текстовий матеріал'}
+                                                        </Link>
                                                     </Typography>
                                                 </Box>
                                             )}
                                             
-                                            {task?.content?.video && (
+                                            {/* Відео вкладення */}
+                                            {task?.attachments?.find((a: { type: string }) => a.type === 'video') && (
                                                 <Box sx={{ mt: 2 }}>
                                                     <iframe
                                                         width="100%"
                                                         height="315"
-                                                        src={task.content.video}
+                                                        src={task.attachments.find((a: { type: string; url: string }) => a.type === 'video')?.url}
                                                         title="Video"
                                                         frameBorder="0"
                                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -439,14 +448,15 @@ const SubjectDetails = () => {
                                                 </Box>
                                             )}
                                             
-                                            {task?.content?.images && task?.content?.images?.length > 0 && (
+                                            {/* Зображення */}
+                                            {task?.attachments?.filter((a: { type: string }) => a.type === 'image').length > 0 && (
                                                 <Box sx={{ mt: 2 }}>
                                                     <Grid container spacing={2}>
-                                                        {task?.content?.images?.map((image: string, index: number) => (
+                                                        {task?.attachments?.filter((a: { type: string }) => a.type === 'image').map((image: { url: string; title?: string }, index: number) => (
                                                             <Grid item xs={12} sm={6} md={4} key={index}>
                                                                 <img 
-                                                                    src={image} 
-                                                                    alt={`Image ${index + 1}`} 
+                                                                    src={image.url} 
+                                                                    alt={image.title || `Image ${index + 1}`} 
                                                                     style={{ width: '100%', borderRadius: '4px' }}
                                                                 />
                                                             </Grid>
@@ -455,13 +465,14 @@ const SubjectDetails = () => {
                                                 </Box>
                                             )}
                                             
-                                            {task?.content?.learningApp && (
+                                            {/* Міні-гра */}
+                                            {task?.attachments?.find((a: { type: string }) => a.type === 'game') && (
                                                 <Box sx={{ mt: 2 }}>
                                                     <Typography variant="subtitle2" gutterBottom>
                                                         Інтерактивне завдання:
                                                     </Typography>
                                                     <iframe
-                                                        src={task.content.learningApp}
+                                                        src={task.attachments.find((a: { type: string; url: string }) => a.type === 'game')?.url}
                                                         width="100%"
                                                         height="500"
                                                         frameBorder="0"

@@ -89,16 +89,8 @@ const Journal = () => {
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
-    const [currentTab, setCurrentTab] = useState(0);
     const [error, setError] = useState<string | null>(null);
     
-    // Предмети для швидкого доступу у вкладках
-    const [quickAccessSubjects, setQuickAccessSubjects] = useState<QuickAccessSubject[]>([
-        { id: 0, name: 'Я досліджую світ' },
-        { id: 1, name: 'Математика' },
-        { id: 2, name: 'Українська мова' }
-    ]);
-
     useEffect(() => {
         if (user && !userLoading && isTeacher) {
             fetchData();
@@ -112,7 +104,7 @@ const Journal = () => {
 
             // Отримуємо список предметів
             const subjectsData = await getSubjects();
-            console.log('Subjects data:', subjectsData);
+
             setSubjects(subjectsData);
 
             // Отримуємо список студентів
@@ -120,47 +112,7 @@ const Journal = () => {
             console.log('Students data:', studentsData);
             setStudents(studentsData);
 
-            // Створюємо масив для швидкого доступу до предметів
-            if (subjectsData && subjectsData.length > 0) {
-                // Шукаємо предмети, які відповідають нашим стандартним вкладкам
-                const standardSubjects = [
-                    'Я досліджую світ',
-                    'Математика',
-                    'Українська мова'
-                ];
-                
-                const foundSubjects = standardSubjects.map((name, index) => {
-                    const found = subjectsData.find((s: Subject) => s.name === name);
-                    return found 
-                        ? { id: found._id, name: found.name } 
-                        : { id: index, name };
-                });
-                
-                // Якщо знайдено менше 3 стандартних предметів, додаємо інші з наявних
-                if (foundSubjects.filter(s => typeof s.id === 'string').length < 3) {
-                    const additionalSubjects = subjectsData
-                        .filter((s: Subject) => !standardSubjects.includes(s.name))
-                        .slice(0, 3 - foundSubjects.filter((s: QuickAccessSubject) => typeof s.id === 'string').length)
-                        .map((s: Subject) => ({ id: s._id, name: s.name }));
-                    
-                    // Замінюємо числові id на реальні id предметів
-                    for (let i = 0; i < foundSubjects.length; i++) {
-                        if (typeof foundSubjects[i].id === 'number' && additionalSubjects.length > 0) {
-                            foundSubjects[i] = additionalSubjects.shift()!;
-                        }
-                    }
-                }
-                
-                setQuickAccessSubjects(foundSubjects);
-                
-                // Вибираємо перший предмет для відображення
-                const firstSubject = foundSubjects.find(s => typeof s.id === 'string');
-                if (firstSubject && typeof firstSubject.id === 'string') {
-                    await handleSubjectChange(firstSubject.id);
-                } else if (subjectsData.length > 0) {
-                    await handleSubjectChange(subjectsData[0]._id);
-                }
-            }
+        
         } catch (error) {
             console.error('Error fetching data:', error);
             setError('Помилка при завантаженні даних');
@@ -169,14 +121,7 @@ const Journal = () => {
         }
     };
 
-    const handleTabChange = async (event: React.SyntheticEvent, newValue: number) => {
-        setCurrentTab(newValue);
-        
-        const selectedTab = quickAccessSubjects[newValue];
-        if (selectedTab && typeof selectedTab.id === 'string') {
-            await handleSubjectChange(selectedTab.id);
-        }
-    };
+
 
     const fetchTasksForSubject = async (subjectId: string) => {
         try {
@@ -329,14 +274,7 @@ const Journal = () => {
             <Typography variant="h4" component="h1" gutterBottom>
                 Журнал
             </Typography>
-            
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-                <Tabs value={currentTab} onChange={handleTabChange}>
-                    {quickAccessSubjects.map((subject, index) => (
-                        <Tab key={index} label={subject.name} />
-                    ))}
-                </Tabs>
-            </Box>
+        
             
             <Box sx={{ mt: 4, mb: 4 }}>
                 <FormControl fullWidth>
