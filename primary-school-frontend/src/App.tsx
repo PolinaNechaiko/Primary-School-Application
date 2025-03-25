@@ -17,6 +17,7 @@ import Students from './pages/Students/Students.tsx';
 import WeeklyGame from './pages/WeeklyGame';
 import StudentGrades from './pages/StudentGrades';
 import StudentTasks from './pages/StudentTasks';
+import TaskResponses from './pages/TaskResponses/TaskResponses.tsx';
 
 function App() {
     configureInterceptorsForProject(API);
@@ -37,6 +38,7 @@ function App() {
                     {/* Teacher-specific routes */}
                     <Route index path={AppRoutes.JOURNAL} element={<Journal/>}/>
                     <Route index path={AppRoutes.STUDENTS} element={<Students/>}/>
+                    <Route path={AppRoutes.TASK_RESPONSES} element={<TaskResponses/>}/>
                     
                     {/* Student-specific routes */}
                     <Route index path={AppRoutes.STUDENT_GRADES} element={<StudentGrades/>}/>

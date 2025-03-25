@@ -14,4 +14,5 @@ export const AppRoutes = {
     WEEKLY_GAME: '/weekly-game',
     STUDENT_GRADES: '/my-grades',
     STUDENT_TASKS: '/my-tasks',
+    TASK_RESPONSES: '/tasks/:taskId/responses',
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { 
     Box, 
     Container, 
@@ -26,7 +26,8 @@ import {
     IconButton,
     Collapse,
     Checkbox,
-    Link
+    Link as MuiLink,
+    Chip
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
@@ -35,6 +36,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import SendIcon from '@mui/icons-material/Send';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import ForumIcon from '@mui/icons-material/Forum';
 import { useAuth } from '../../hooks/useAuth';
 import { getTasksBySubject } from '../../services/api/tasksApi';
 import { getSubjectById } from '../../services/api/subjectsApi';
@@ -42,6 +44,7 @@ import { API } from '../../services';
 import Confetti from 'react-confetti';
 import { TaskForm } from '../../components/Tasks/TaskForm';
 import { getStudentsList } from '../../services/api/studentsApi';
+import PeopleIcon from '@mui/icons-material/People';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -97,6 +100,7 @@ const SubjectDetails = () => {
     const [availableStudents, setAvailableStudents] = useState<any[]>([]);
     const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
     const [loadingStudents, setLoadingStudents] = useState(false);
+    const [taskResponsesCount, setTaskResponsesCount] = useState<Record<string, number>>({});
 
     useEffect(() => {
         const fetchData = async () => {
@@ -171,6 +175,33 @@ const SubjectDetails = () => {
         
         fetchData();
     }, [subjectId, user?._id, isStudent]);
+
+    useEffect(() => {
+        if (isTeacher && tasks.length > 0) {
+            fetchTaskResponsesCounts();
+        }
+    }, [isTeacher, tasks]);
+
+    const fetchTaskResponsesCounts = async () => {
+        try {
+            // Отримуємо кількість відповідей для кожного завдання
+            const countsMap: Record<string, number> = {};
+            
+            for (const task of tasks) {
+                try {
+                    const response = await API.get(`/tasks/responses/${task._id}`);
+                    countsMap[task._id] = response.data.length;
+                } catch (error) {
+                    console.error(`Error fetching responses count for task ${task._id}:`, error);
+                    countsMap[task._id] = 0;
+                }
+            }
+            
+            setTaskResponsesCount(countsMap);
+        } catch (error) {
+            console.error('Error fetching task responses counts:', error);
+        }
+    };
 
     const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
         setTabValue(newValue);
@@ -408,9 +439,34 @@ const SubjectDetails = () => {
                                                     <CheckCircleIcon color="success" sx={{ ml: 1 }} />
                                                 )}
                                             </Box>
-                                            <IconButton onClick={() => toggleTaskExpand(task._id)}>
-                                                {expandedTasks[task._id] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                                            </IconButton>
+                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                {isTeacher && (
+                                                    <Button
+                                                        size="small"
+                                                        variant="outlined"
+                                                        component={Link}
+                                                        to={`/tasks/${task._id}/responses`}
+                                                        sx={{ mr: 2 }}
+                                                        endIcon={
+                                                            taskResponsesCount[task._id] ? (
+                                                                <Chip 
+                                                                    size="small" 
+                                                                    label={taskResponsesCount[task._id]} 
+                                                                    color="primary" 
+                                                                    sx={{ height: 20, fontSize: '0.7rem' }}
+                                                                />
+                                                            ) : (
+                                                                <ForumIcon fontSize="small" />
+                                                            )
+                                                        }
+                                                    >
+                                                        Відповіді учнів
+                                                    </Button>
+                                                )}
+                                                <IconButton onClick={() => toggleTaskExpand(task._id)}>
+                                                    {expandedTasks[task._id] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                                                </IconButton>
+                                            </Box>
                                         </Box>
                                         
                                         <Typography variant="body2" color="text.secondary" paragraph>
@@ -422,13 +478,13 @@ const SubjectDetails = () => {
                                             {task?.attachments?.find((a: { type: string }) => a.type === 'text') && (
                                                 <Box sx={{ mt: 2 }}>
                                                     <Typography variant="body1">
-                                                        <Link 
+                                                        <MuiLink 
                                                             href={task.attachments.find((a: { type: string; url: string }) => a.type === 'text')?.url || ''} 
                                                             target="_blank" 
                                                             rel="noopener noreferrer"
                                                         >
                                                             {task.attachments.find((a: { type: string; title?: string }) => a.type === 'text')?.title || 'Відкрити текстовий матеріал'}
-                                                        </Link>
+                                                        </MuiLink>
                                                     </Typography>
                                                 </Box>
                                             )}
